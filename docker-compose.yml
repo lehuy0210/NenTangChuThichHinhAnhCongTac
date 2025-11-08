@@ -1,0 +1,462 @@
+version: '3.8'
+
+# =============================================================================
+# DOCKER COMPOSE - NỀN TẢNG CHÚ THÍCH HÌNH ẢNH CỘNG TÁC
+# =============================================================================
+# Lý thuyết: Container Orchestration
+# - Quản lý nhiều containers như một hệ thống duy nhất
+# - Định nghĩa networks, volumes, dependencies
+# - Service discovery tự động giữa các containers
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # DATABASES LAYER
+  # ===========================================================================
+
+  # PostgreSQL - Relational Database cho User, Auth, Image metadata
+  # Lý thuyết: RDBMS (Relational Database Management System)
+  # - ACID properties: Atomicity, Consistency, Isolation, Durability
+  # - Normalized schema (3NF)
+  # - Foreign keys & relationships
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: platform_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/databases/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MongoDB - Document Database cho Annotations
+  # Lý thuyết: NoSQL Document Store
+  # - Flexible schema (schemaless)
+  # - Embedded documents & arrays
+  # - Geospatial queries (2D coordinates)
+  # - Horizontal scaling với sharding
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - backend
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Cassandra - Wide-Column Store cho Chat Messages
+  # Lý thuyết: NoSQL Wide-Column Store
+  # - High write throughput (hàng triệu writes/second)
+  # - Time-series data (messages có timestamp)
+  # - Partitioning by annotation_id
+  # - Eventually consistent (AP trong CAP theorem)
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra_db
+    environment:
+      CASSANDRA_CLUSTER_NAME: chat_cluster
+      CASSANDRA_DC: dc1
+      CASSANDRA_RACK: rack1
+    ports:
+      - "9042:9042"
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "cqlsh -e 'describe cluster'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis - In-Memory Key-Value Store
+  # Lý thuyết: In-Memory Database
+  # - O(1) lookup time (hash table)
+  # - TTL (Time To Live) cho session expiration
+  # - Pub/Sub cho real-time notifications
+  # - LRU eviction policy khi hết memory
+  redis:
+    image: redis:7-alpine
+    container_name: redis_cache
+    command: redis-server --appendonly yes --requirepass redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO - S3-Compatible Object Storage cho Images
+  # Lý thuyết: Object Storage
+  # - Lưu trữ unstructured data (images, files)
+  # - Distributed storage với replication
+  # - HTTP API (RESTful)
+  # - Scalable horizontally
+  minio:
+    image: minio/minio:latest
+    container_name: minio_storage
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    volumes:
+      - minio_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # MESSAGE BROKER LAYER
+  # ===========================================================================
+
+  # Zookeeper - Distributed Coordination cho Kafka
+  # Lý thuyết: Distributed Consensus
+  # - Leader election
+  # - Configuration management
+  # - Service discovery
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - backend
+
+  # Apache Kafka - Event Streaming Platform
+  # Lý thuyết: Distributed Event Streaming
+  # - Publish-Subscribe pattern
+  # - Event sourcing (events are immutable)
+  # - Partitioning cho parallel processing
+  # - Offset tracking cho consumer groups
+  # - Log compaction cho state storage
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka_broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================================================
+  # MICROSERVICES LAYER
+  # ===========================================================================
+
+  # Authentication Service
+  # Lý thuyết:
+  # - JWT (JSON Web Token) cho stateless authentication
+  # - Bcrypt hashing (salt + hash) cho password security
+  # - OAuth2 flow cho third-party login
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth_service
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: platform_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      REDIS_HOST: redis
+      REDIS_PASSWORD: redis123
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      JWT_EXPIRY: 24h
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # User Management Service
+  # Lý thuyết:
+  # - RBAC (Role-Based Access Control)
+  # - N-tier architecture (Presentation, Business, Data)
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+    container_name: user_service
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: platform_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # Image Service
+  # Lý thuyết:
+  # - Multipart form data upload
+  # - Image processing pipeline (resize, compress, thumbnail)
+  # - CDN integration pattern
+  image-service:
+    build:
+      context: ./services/image-service
+      dockerfile: Dockerfile
+    container_name: image_service
+    environment:
+      PYTHON_ENV: production
+      PORT: 3003
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: platform_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: images
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # Annotation Service
+  # Lý thuyết:
+  # - Spatial indexing (2D coordinates)
+  # - GeoJSON format cho geometric data
+  # - Document versioning
+  annotation-service:
+    build:
+      context: ./services/annotation-service
+      dockerfile: Dockerfile
+    container_name: annotation_service
+    environment:
+      NODE_ENV: production
+      PORT: 3004
+      MONGODB_URI: mongodb://admin:admin123@mongodb:27017/annotations?authSource=admin
+      KAFKA_BROKER: kafka:9092
+    ports:
+      - "3004:3004"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # Chat Service
+  # Lý thuyết:
+  # - WebSocket protocol (full-duplex communication)
+  # - Socket.io (fallback to long-polling)
+  # - Message queuing pattern
+  # - Cassandra partition key = annotation_id
+  chat-service:
+    build:
+      context: ./services/chat-service
+      dockerfile: Dockerfile
+    container_name: chat_service
+    environment:
+      NODE_ENV: production
+      PORT: 3005
+      CASSANDRA_HOSTS: cassandra
+      CASSANDRA_KEYSPACE: chat_platform
+      KAFKA_BROKER: kafka:9092
+      REDIS_HOST: redis
+      REDIS_PASSWORD: redis123
+    ports:
+      - "3005:3005"
+    depends_on:
+      cassandra:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # Notification Service
+  # Lý thuyết:
+  # - Event-driven architecture
+  # - Message queue consumer pattern
+  # - Push notification protocols (FCM, APNs)
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification_service
+    environment:
+      PYTHON_ENV: production
+      PORT: 3006
+      REDIS_HOST: redis
+      REDIS_PASSWORD: redis123
+      KAFKA_BROKER: kafka:9092
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_USER: your-email@gmail.com
+      SMTP_PASSWORD: your-app-password
+    ports:
+      - "3006:3006"
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # ===========================================================================
+  # API GATEWAY & LOAD BALANCER
+  # ===========================================================================
+
+  # NGINX - API Gateway & Reverse Proxy
+  # Lý thuyết:
+  # - Reverse proxy pattern
+  # - Load balancing algorithms (Round Robin, Least Connections)
+  # - SSL/TLS termination
+  # - Rate limiting
+  # - Request routing based on path
+  nginx:
+    image: nginx:alpine
+    container_name: api_gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infrastructure/api-gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infrastructure/api-gateway/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - auth-service
+      - user-service
+      - image-service
+      - annotation-service
+      - chat-service
+    networks:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  # ===========================================================================
+  # FRONTEND
+  # ===========================================================================
+
+  # React Frontend
+  # Lý thuyết:
+  # - Component-based architecture
+  # - Virtual DOM
+  # - State management (Redux/Context API)
+  # - WebSocket client
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend_app
+    environment:
+      REACT_APP_API_URL: http://nginx
+      REACT_APP_WS_URL: ws://localhost:3005
+    ports:
+      - "3000:80"
+    depends_on:
+      - nginx
+    networks:
+      - frontend
+    restart: unless-stopped
+
+# =============================================================================
+# NETWORKS
+# Lý thuyết: Network Isolation
+# - Backend: Internal network cho services giao tiếp
+# - Frontend: Public network cho user access
+# =============================================================================
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+# =============================================================================
+# VOLUMES
+# Lý thuyết: Data Persistence
+# - Named volumes cho database data
+# - Survive container restarts
+# - Backup & restore capability
+# =============================================================================
+volumes:
+  postgres_data:
+  mongodb_data:
+  cassandra_data:
+  redis_data:
+  minio_data:
