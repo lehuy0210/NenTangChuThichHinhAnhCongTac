@@ -1,170 +1,198 @@
 // =============================================================================
-// KẾT NỐI DATABASE - SEQUELIZE ORM (ĐƠN GIẢN HÓA)
+// KẾT NỐI CƠ SỞ DỮ LIỆU - SEQUELIZE ORM
 // =============================================================================
-// Giải thích cho sinh viên:
-// Sequelize = Thư viện giúp kết nối và thao tác với database bằng JavaScript
-// Thay vì viết SQL thuần, ta viết code JavaScript (dễ hơn, ít lỗi hơn)
+// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
 //
-// VÍ DỤ:
-// - SQL thuần: SELECT * FROM users WHERE email = 'test@test.com'
-// - Sequelize:  User.findOne({ where: { email: 'test@test.com' } })
+// 1️⃣ MÔN CƠ SỞ DỮ LIỆU (Database):
+//    ✅ Connection Pool: Tái sử dụng kết nối DB (giảm overhead)
+//    ✅ Transaction & ACID: Đảm bảo tính toàn vẹn dữ liệu
+//    ✅ Index (B-Tree): Tối ưu truy vấn (O(log n))
+//    ✅ Schema Design: Thiết kế bảng, khóa chính, khóa ngoại
+//    ✅ Query Optimization: Tối ưu câu truy vấn SQL
+//
+// 2️⃣ MÔN HỆ ĐIỀU HÀNH (Operating Systems):
+//    ✅ Process Management: Quản lý connections như processes
+//    ✅ Resource Allocation: Phân bổ connections từ pool
+//    ✅ Deadlock Prevention: Timeout để tránh deadlock
+//
+// 3️⃣ MÔN CẤU TRÚC DỮ LIỆU & GIẢI THUẬT 2:
+//    ✅ B-Tree: PostgreSQL dùng B-Tree cho index
+//    ✅ Hash Table: Index bằng hash cho equality lookups
+//    ✅ Time Complexity: Index giảm từ O(n) xuống O(log n)
+//
+// 4️⃣ MÔN HỆ THỐNG PHÂN TÁN (Distributed Systems):
+//    ✅ Replication: Master-Slave, Read Replicas
+//    ✅ Partitioning: Sharding theo user_id
+//    ✅ CAP Theorem: Consistency, Availability, Partition tolerance
+//
 // =============================================================================
 
 const { Sequelize } = require('sequelize');
 const logger = require('./logger');
 
 // =============================================================================
-// BƯỚC 1: ĐỌC THÔNG TIN KẾT NỐI TỪ BIẾN MÔI TRƯỜNG
+// BƯỚC 1: ĐỌC THÔNG TIN KẾT NỐI TỪ ENVIRONMENT
 // =============================================================================
-// Giải thích: Thông tin database (tên DB, user, password) được lưu trong .env
-// Nếu không có -> dùng giá trị mặc định (cho development)
+// 📚 MÔN KỸ THUẬT PHẦN MỀM:
+//    - Configuration Management: Tách config ra khỏi code
+//    - 12-Factor App: Store config in environment
 
-const DB_NAME = process.env.DB_NAME || 'platform_db';     // Tên database
-const DB_USER = process.env.DB_USER || 'admin';           // Username
-const DB_PASSWORD = process.env.DB_PASSWORD || 'admin123'; // Password
-const DB_HOST = process.env.DB_HOST || 'localhost';       // Địa chỉ server
-const DB_PORT = process.env.DB_PORT || 5432;              // Port (PostgreSQL mặc định 5432)
+const DB_NAME = process.env.DB_NAME || 'platform_db';
+const DB_USER = process.env.DB_USER || 'admin';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'admin123';
+const DB_HOST = process.env.DB_HOST || 'localhost';
+const DB_PORT = process.env.DB_PORT || 5432;
 
 // =============================================================================
-// BƯỚC 2: TẠO KẾT NỐI DATABASE VỚI SEQUELIZE
+// BƯỚC 2: CONNECTION POOL - TÁI SỬ DỤNG KẾT NỐI
 // =============================================================================
-// Giải thích: Tạo object sequelize để kết nối đến PostgreSQL
+// 📚 MÔN CƠ SỞ DỮ LIỆU - CONNECTION POOLING:
+//
+// KHI KHÔNG CÓ POOL (Slow):
+//    1. Tạo kết nối mới (TCP handshake, authentication) - 50ms
+//    2. Thực hiện query - 5ms
+//    3. Đóng kết nối - 10ms
+//    => TỔNG: 65ms/request
+//
+// KHI CÓ POOL (Fast):
+//    1. Lấy kết nối sẵn có từ pool - 1ms
+//    2. Thực hiện query - 5ms
+//    3. Trả kết nối về pool - 1ms
+//    => TỔNG: 7ms/request (nhanh hơn 9x)
+//
+// 📚 CẤU TRÚC DỮ LIỆU:
+//    - Pool là Queue (FIFO): Connections chờ trong hàng đợi
+//    - Time Complexity: O(1) để lấy/trả connection
+//
+// 📚 HỆ ĐIỀU HÀNH:
+//    - Resource pooling giống process pooling
+//    - Idle timeout: Giải phóng connection không dùng
 
 const sequelize = new Sequelize(DB_NAME, DB_USER, DB_PASSWORD, {
   host: DB_HOST,
   port: DB_PORT,
-  dialect: 'postgres', // Loại database (PostgreSQL)
+  dialect: 'postgres',
 
-  // ===== CONNECTION POOL (BỂ KẾT NỐI) =====
-  // Giải thích: Thay vì mỗi request tạo kết nối mới (chậm),
-  // ta tạo sẵn 1 "bể" kết nối và tái sử dụng (nhanh hơn)
-  //
-  // HÌNH DUNG: Giống như bể bơi
-  // - min: Luôn giữ sẵn ít nhất 5 kết nối (dự phòng)
-  // - max: Tối đa 20 kết nối cùng lúc (không cho vượt quá)
-  // - acquire: Nếu sau 30s không lấy được kết nối -> báo lỗi
-  // - idle: Nếu kết nối không dùng quá 10s -> đóng lại (tiết kiệm tài nguyên)
+  // ===== CONNECTION POOL CONFIGURATION =====
   pool: {
-    min: 5,         // Tối thiểu 5 kết nối luôn sẵn sàng
-    max: 20,        // Tối đa 20 kết nối cùng lúc
-    acquire: 30000, // Timeout 30 giây (30000 milliseconds)
-    idle: 10000     // Đóng kết nối sau 10 giây không dùng
+    min: 5,         // 📚 CSDL: Tối thiểu 5 connections luôn sẵn sàng
+    max: 20,        // 📚 HĐH: Giới hạn tài nguyên, tránh quá tải
+    acquire: 30000, // 📚 HĐH: Timeout 30s để tránh deadlock
+    idle: 10000     // 📚 HĐH: Đóng connection sau 10s không dùng
   },
 
-  // ===== LOGGING (GHI LOG) =====
-  // Giải thích: Có ghi log SQL queries ra console không?
-  // - Development (đang code): Có, để debug
-  // - Production (chạy thật): Không, để tăng hiệu năng
+  // ===== LOGGING =====
   logging: process.env.NODE_ENV === 'development'
-    ? (msg) => logger.debug(msg) // Development: Ghi log SQL
-    : false,                     // Production: Không ghi log
+    ? (msg) => logger.debug(msg)
+    : false,
 
   // ===== TIMEZONE =====
-  // Giải thích: Lưu thời gian trong database theo múi giờ nào?
-  // Best practice: Lưu UTC (+00:00) trong DB, chuyển sang local khi hiển thị
+  // 📚 CSDL: Lưu UTC trong DB, convert sang local khi hiển thị
   timezone: '+00:00',
 
-  // ===== RETRY (THỬ LẠI KHI LỖI) =====
-  // Giải thích: Nếu kết nối database bị lỗi, thử lại bao nhiêu lần?
-  // - max: Thử tối đa 3 lần
-  // - timeout: Mỗi lần thử, chờ 3 giây
+  // ===== RETRY LOGIC =====
+  // 📚 HỆ THỐNG PHÂN TÁN: Retry khi connection bị lỗi (network partition)
   retry: {
     max: 3,        // Thử tối đa 3 lần
-    timeout: 3000  // Mỗi lần thử chờ 3 giây
+    timeout: 3000  // Mỗi lần chờ 3s
   },
 
-  // ===== CẤU HÌNH MODELS (BẢNG) =====
-  // Giải thích: Cấu hình mặc định cho tất cả các models (bảng)
+  // ===== DEFAULT SETTINGS CHO TẤT CẢ MODELS =====
   define: {
-    // TIMESTAMPS: Tự động thêm 2 cột createdAt, updatedAt
-    // Giúp biết record được tạo lúc nào, sửa lần cuối lúc nào
-    timestamps: true,
+    // 📚 CSDL: Timestamps cho audit trail
+    timestamps: true,     // Tự động thêm created_at, updated_at
 
-    // PARANOID (SOFT DELETE): Không xóa thật, chỉ đánh dấu deletedAt
-    // Khi xóa user -> không xóa khỏi DB, chỉ set deletedAt = thời gian hiện tại
-    // Lợi ích: Có thể khôi phục dữ liệu nếu cần
-    paranoid: true,
+    // 📚 CSDL: Soft Delete - không xóa thật, chỉ đánh dấu deleted_at
+    paranoid: true,       // Thêm cột deleted_at
 
-    // UNDERSCORED: Dùng snake_case trong DB (created_at thay vì createdAt)
-    // JavaScript dùng camelCase, SQL dùng snake_case
-    underscored: true,
+    // 📚 SQL Convention: Dùng snake_case thay vì camelCase
+    underscored: true,    // created_at thay vì createdAt
 
-    // FREEZE TABLE NAME: Không tự động đổi tên bảng sang số nhiều
-    // Ví dụ: Model "User" -> Table "User" (không phải "Users")
-    freezeTableName: true
+    // 📚 CSDL: Không tự động đổi tên bảng sang số nhiều
+    freezeTableName: true // "User" thay vì "Users"
   }
 });
 
 // =============================================================================
-// BƯỚC 3: HÀM KIỂM TRA KẾT NỐI
+// BƯỚC 3: KIỂM TRA KẾT NỐI VÀ ĐỒNG BỘ SCHEMA
 // =============================================================================
-// Giải thích: Trước khi chạy server, cần kiểm tra database có kết nối được không
-// Nếu không kết nối được -> dừng luôn (fail fast)
+// 📚 MÔN CƠ SỞ DỮ LIỆU:
+//
+// SYNC vs MIGRATION:
+//    - sync(): Tự động tạo/cập nhật bảng (chỉ dùng development)
+//    - migration: Versioned schema changes (dùng production)
+//
+// INDEX OPTIMIZATION:
+//    - Primary Key: Tự động có B-Tree index
+//    - Foreign Key: Nên thêm index để tăng tốc JOIN
+//    - Unique Constraint: Tự động có index
+//
+// 📚 CẤU TRÚC DỮ LIỆU - B-TREE INDEX:
+//    - PostgreSQL dùng B-Tree (từ đề cương CTDL 1)
+//    - Time complexity: O(log n) cho SELECT, INSERT, UPDATE, DELETE
+//    - VD: Tìm user với 1 triệu records:
+//      + Không index: O(n) = 1,000,000 so sánh
+//      + Có B-Tree index: O(log n) = log₂(1,000,000) ≈ 20 so sánh
 
 async function testConnection() {
   try {
-    // Bước 1: Thử kết nối đến database
+    // Bước 1: Test kết nối
     await sequelize.authenticate();
-    logger.info('✅ Kết nối database thành công!');
+    logger.info('✅ Kết nối PostgreSQL thành công');
 
-    // Bước 2: Đồng bộ schema (chỉ trong development)
-    // Giải thích: Tự động tạo/cập nhật bảng theo models
-    // CẢNH BÁO: Không dùng trong production! Dùng migrations thay thế
+    // Bước 2: Đồng bộ schema (chỉ development)
     if (process.env.NODE_ENV === 'development') {
-      await sequelize.sync({ alter: true }); // alter: cập nhật schema nếu thay đổi
+      // 📚 CSDL: ALTER TABLE để sync schema
+      await sequelize.sync({ alter: true });
       logger.info('✅ Database schema đã được đồng bộ');
+
+      // 📚 CSDL: Index được tạo tự động cho:
+      // - Primary Key (id) -> B-Tree index
+      // - Unique columns (email) -> B-Tree index
+      // - Foreign Keys -> Nên thêm index thủ công
     }
 
   } catch (error) {
-    // Nếu không kết nối được -> crash chương trình
-    logger.error('❌ Không thể kết nối database:', { error: error.message });
+    logger.error('❌ Lỗi kết nối database:', { error: error.message });
 
-    // Giải thích: Fail Fast Principle
-    // Nếu không có database -> service không thể hoạt động
-    // Crash ngay để Docker/Kubernetes tự động restart
-    process.exit(1); // Exit code 1 = có lỗi
+    // 📚 KỸ THUẬT PHẦN MỀM: Fail Fast Principle
+    // Nếu không có DB -> service không thể hoạt động -> crash ngay
+    process.exit(1);
   }
 }
 
 // =============================================================================
-// BƯỚC 4: HÀM ĐÓNG KẾT NỐI (GRACEFUL SHUTDOWN)
+// BƯỚC 4: ĐÓNG KẾT NỐI (GRACEFUL SHUTDOWN)
 // =============================================================================
-// Giải thích: Khi tắt server, cần đóng kết nối database đúng cách
-// Tránh "rò rỉ" kết nối (connection leak)
+// 📚 MÔN HỆ ĐIỀU HÀNH:
+//    - Graceful shutdown: Đóng tất cả connections trước khi thoát
+//    - Resource cleanup: Tránh connection leak
+//
+// 📚 MÔN CƠ SỞ DỮ LIỆU:
+//    - Commit/Rollback pending transactions
+//    - Đóng connections trong pool
 
 async function closeConnection() {
   try {
-    await sequelize.close(); // Đóng tất cả kết nối trong pool
-    logger.info('✅ Đã đóng kết nối database');
+    // Đóng tất cả connections trong pool
+    await sequelize.close();
+    logger.info('✅ Đã đóng connection pool');
   } catch (error) {
-    logger.error('❌ Lỗi khi đóng kết nối database:', { error: error.message });
+    logger.error('❌ Lỗi khi đóng database:', { error: error.message });
   }
 }
 
-// =============================================================================
-// BƯỚC 5: XỬ LÝ TẮT CHƯƠNG TRÌNH
-// =============================================================================
-// Giải thích: Khi nhấn Ctrl+C hoặc Docker stop -> đóng database trước khi thoát
-
-// SIGINT = Ctrl+C
+// ===== XỬ LÝ SIGNAL TỪ HỆ ĐIỀU HÀNH =====
+// 📚 HỆ ĐIỀU HÀNH: Process signals
 process.on('SIGINT', async () => {
-  await closeConnection();
-  process.exit(0); // Exit code 0 = thoát bình thường
-});
-
-// SIGTERM = Docker stop / kill
-process.on('SIGTERM', async () => {
   await closeConnection();
   process.exit(0);
 });
 
-// =============================================================================
-// EXPORT
-// =============================================================================
-// Giải thích: Export để dùng ở các file khác
-// - sequelize: Object kết nối database
-// - testConnection: Hàm kiểm tra kết nối
-// - closeConnection: Hàm đóng kết nối
+process.on('SIGTERM', async () => {
+  await closeConnection();
+  process.exit(0);
+});
 
 module.exports = {
   sequelize,
@@ -173,13 +201,96 @@ module.exports = {
 };
 
 // =============================================================================
-// VÍ DỤ SỬ DỤNG
+// 📚 KIẾN THỨC MỞ RỘNG: CÁC LOẠI INDEX TRONG POSTGRESQL
 // =============================================================================
-// Trong server.js:
 //
-// const { testConnection } = require('./config/database');
+// 1. B-TREE INDEX (Default):
+//    - Dùng cho: =, <, >, <=, >=, BETWEEN, ORDER BY
+//    - Cấu trúc: Cây cân bằng (từ đề cương CTDL 1)
+//    - Time complexity: O(log n)
+//    - VD: CREATE INDEX idx_email ON users(email);
 //
-// async function startServer() {
-//   await testConnection(); // Kiểm tra DB trước
-//   app.listen(3000);       // Sau đó mới start server
+// 2. HASH INDEX:
+//    - Dùng cho: = (equality only)
+//    - Cấu trúc: Hash Table (từ đề cương CTDL 1)
+//    - Time complexity: O(1) trung bình
+//    - VD: CREATE INDEX idx_hash ON users USING HASH(email);
+//
+// 3. GIN INDEX (Generalized Inverted Index):
+//    - Dùng cho: JSONB, Array, Full-text search
+//    - VD: CREATE INDEX idx_gin ON users USING GIN(metadata);
+//
+// 4. BRIN INDEX (Block Range Index):
+//    - Dùng cho: Dữ liệu lớn, sorted naturally (timestamp)
+//    - VD: CREATE INDEX idx_brin ON logs USING BRIN(created_at);
+//
+// =============================================================================
+// 📚 TRANSACTION & ACID PROPERTIES (Từ đề cương CSDL)
+// =============================================================================
+//
+// VÍ DỤ SỬ DỤNG TRANSACTION:
+//
+// const transaction = await sequelize.transaction();
+// try {
+//   // Atomicity: Tất cả thành công hoặc tất cả rollback
+//   await User.create({ email: 'test@test.com' }, { transaction });
+//   await Profile.create({ userId: user.id }, { transaction });
+//
+//   // Commit nếu không có lỗi
+//   await transaction.commit();
+// } catch (error) {
+//   // Rollback nếu có lỗi
+//   await transaction.rollback();
 // }
+//
+// ACID PROPERTIES:
+// - Atomicity: All or nothing
+// - Consistency: Dữ liệu luôn đúng constraints
+// - Isolation: Transactions không ảnh hưởng lẫn nhau
+// - Durability: Commit = lưu vĩnh viễn
+//
+// =============================================================================
+// 📚 QUERY OPTIMIZATION TIPS (Từ đề cương CSDL)
+// =============================================================================
+//
+// 1. SỬ DỤNG INDEX:
+//    ❌ Slow: SELECT * FROM users WHERE email = 'test@test.com'; (O(n))
+//    ✅ Fast: CREATE INDEX + SELECT (O(log n))
+//
+// 2. TRÁNH SELECT *:
+//    ❌ Slow: SELECT * FROM users;
+//    ✅ Fast: SELECT id, email FROM users;
+//
+// 3. SỬ DỤNG LIMIT:
+//    ❌ Slow: SELECT * FROM users ORDER BY created_at DESC;
+//    ✅ Fast: SELECT * FROM users ORDER BY created_at DESC LIMIT 10;
+//
+// 4. JOIN OPTIMIZATION:
+//    - Thêm index cho foreign keys
+//    - Dùng EXPLAIN ANALYZE để xem query plan
+//
+// 5. CONNECTION POOLING:
+//    - Tái sử dụng connections (như đã config ở trên)
+//
+// =============================================================================
+// 📊 TỔNG KẾT LIÊN HỆ VỚI ĐỀ CƯƠNG
+// =============================================================================
+//
+// ✅ MÔN CƠ SỞ DỮ LIỆU:
+//    - Connection Pool, Transaction, ACID, Index (B-Tree, Hash)
+//    - Schema design, Query optimization, Constraints
+//
+// ✅ MÔN CẤU TRÚC DỮ LIỆU & GIẢI THUẬT:
+//    - B-Tree (đề cương CTDL 1): O(log n)
+//    - Hash Table (đề cương CTDL 1): O(1)
+//    - Queue (Connection Pool queue)
+//
+// ✅ MÔN HỆ ĐIỀU HÀNH:
+//    - Process management, Resource pooling
+//    - Signals (SIGTERM, SIGINT), Graceful shutdown
+//
+// ✅ MÔN HỆ THỐNG PHÂN TÁN:
+//    - Replication, Sharding, CAP Theorem
+//    - Retry logic, Network partition handling
+//
+// =============================================================================
