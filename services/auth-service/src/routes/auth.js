@@ -1,42 +1,97 @@
 // =============================================================================
-// AUTHENTICATION ROUTES
+// AUTH ROUTES - RESTFUL API ENDPOINTS
 // =============================================================================
-// Lý thuyết: RESTful API Design
-// - REST = Representational State Transfer
-// - Resource-based URLs: /auth/register, /auth/login
-// - HTTP Methods: GET (read), POST (create), PUT (update), DELETE (delete)
-// - Stateless: Mỗi request độc lập, không phụ thuộc vào request trước
+// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
+//
+// 1️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
+//    ✅ RESTful API: Architectural style cho web services
+//    ✅ HTTP Methods: GET, POST, PUT, DELETE (CRUD)
+//    ✅ Status Codes: 200, 201, 400, 401, 403, 404, 500
+//    ✅ JSON API: Request/Response format
+//
+// 2️⃣ MÔN MẠNG MÁY TÍNH (Networking):
+//    ✅ HTTP Protocol: Request-response model
+//    ✅ Headers: Authorization, Content-Type
+//    ✅ Status Codes: 2xx success, 4xx client error, 5xx server error
+//    ✅ Client-Server Architecture
+//
+// 3️⃣ MÔN AN TOÀN HỆ THỐNG:
+//    ✅ Authentication Flow: Login, logout, token management
+//    ✅ Authorization: Role-based access control
+//    ✅ Security Headers: CORS, Rate limiting
+//
+// 4️⃣ MÔN KỸ THUẬT PHẦN MỀM:
+//    ✅ API Design: RESTful principles, resource naming
+//    ✅ Error Handling: Consistent error responses
+//    ✅ Middleware Pattern: Express routing
+//
 // =============================================================================
 
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { generateToken, blacklistToken, verifyToken } = require('../middleware/auth');
-const { validate, registerSchema, loginSchema } = require('../middleware/validation');
+const { validateRegister, validateLogin } = require('../middleware/validation');
 const logger = require('../config/logger');
 
 // =============================================================================
-// POST /auth/register - Đăng ký tài khoản mới
+// RESTFUL API PRINCIPLES
 // =============================================================================
-// Lý thuyết: User Registration Flow
-// 1. Validate input (email, password, fullName)
-// 2. Check email đã tồn tại chưa
-// 3. Hash password (bcrypt - trong User model hook)
-// 4. Insert vào database
-// 5. Generate JWT token
-// 6. Return user info + token
+// 📚 MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
+//
+// REST = REpresentational State Transfer
+//    - Resource-based (users, posts, comments)
+//    - HTTP methods = CRUD operations
+//    - Stateless: Mỗi request độc lập
+//    - JSON format: Standard data format
+//
+// HTTP METHODS & CRUD:
+//    - POST   -> Create (C)
+//    - GET    -> Read   (R)
+//    - PUT    -> Update (U)
+//    - DELETE -> Delete (D)
+//
+// RESOURCE NAMING:
+//    ✅ /users (plural noun)
+//    ✅ /users/123 (resource ID)
+//    ❌ /getUsers (verb in URL)
+//    ❌ /user (singular)
+//
+// STATUS CODES:
+//    2xx Success: 200 OK, 201 Created, 204 No Content
+//    4xx Client Error: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found
+//    5xx Server Error: 500 Internal Server Error, 503 Service Unavailable
+
 // =============================================================================
-router.post('/register', validate(registerSchema), async (req, res) => {
+// POST /auth/register - ĐĂNG KÝ TÀI KHOẢN
+// =============================================================================
+// 📚 MÔN CÔNG NGHỆ HIỆN ĐẠI - RESTFUL API:
+//    Method: POST (tạo resource mới)
+//    Path: /auth/register
+//    Status: 201 Created (success)
+//
+// 📚 AUTHENTICATION FLOW:
+//    1. Client gửi credentials (email, password)
+//    2. Validate input (validateRegister middleware)
+//    3. Check email exists
+//    4. Hash password (bcrypt trong User model)
+//    5. Create user in database
+//    6. Generate JWT token
+//    7. Return user + token
+
+router.post('/register', validateRegister, async (req, res) => {
   try {
     const { email, password, fullName, avatarUrl } = req.body;
 
-    // Lý thuyết: Duplicate Check
-    // - Check trước khi INSERT để tránh database error
-    // - Race condition: 2 requests cùng lúc có thể vẫn xảy ra
-    // - Database UNIQUE constraint là line of defense cuối cùng
+    // =========================================================================
+    // STEP 1: CHECK EMAIL EXISTS
+    // =========================================================================
+    // 📚 CSDL: B-Tree index lookup - O(log n)
     const existingUser = await User.findByEmail(email);
 
     if (existingUser) {
+      // 📚 MẠNG: HTTP 409 Conflict
+      // Resource already exists
       return res.status(409).json({
         success: false,
         error: 'Email đã được sử dụng',
@@ -44,46 +99,45 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       });
     }
 
-    // Lý thuyết: Database Transaction
-    // - Nếu có nhiều operations, dùng transaction
-    // - All or nothing: Tất cả thành công hoặc tất cả rollback
-    // - ACID properties
+    // =========================================================================
+    // STEP 2: CREATE USER
+    // =========================================================================
+    // 📚 CSDL: INSERT INTO users ...
+    // Password tự động hash trong beforeCreate hook
     const user = await User.create({
       email,
-      password, // Sẽ được hash trong beforeCreate hook
+      password, // Will be hashed by bcrypt
       fullName,
       avatarUrl
     });
 
-    // Generate JWT token
+    // =========================================================================
+    // STEP 3: GENERATE JWT TOKEN
+    // =========================================================================
+    // 📚 AN TOÀN: HMAC-SHA256 signature
     const token = generateToken(user);
 
-    logger.info(`New user registered: ${email}`);
+    logger.info('User registered', { userId: user.id, email: user.email });
 
-    // Lý thuyết: HTTP Status Codes
-    // - 201 Created: Resource mới được tạo thành công
-    // - 200 OK: Request thành công (general)
-    // - 400 Bad Request: Invalid input
-    // - 401 Unauthorized: Chưa authenticate
-    // - 403 Forbidden: Không có quyền
-    // - 404 Not Found: Resource không tồn tại
-    // - 409 Conflict: Conflict với existing resource (duplicate)
-    // - 500 Internal Server Error: Server error
+    // =========================================================================
+    // STEP 4: RETURN RESPONSE
+    // =========================================================================
+    // 📚 MẠNG: HTTP 201 Created
+    //    - Resource mới đã được tạo
+    //    - Return created resource + token
     res.status(201).json({
       success: true,
       message: 'Đăng ký thành công',
       data: {
-        user: user.toJSON(), // Remove password via toJSON()
+        user: user.toJSON(), // Remove password
         token
       }
     });
-  } catch (error) {
-    logger.error('Registration error:', error);
 
-    // Lý thuyết: Error Handling
-    // - Catch database errors (unique constraint violation)
-    // - Don't expose internal errors to client
-    // - Log detailed error for debugging
+  } catch (error) {
+    logger.error('Register error:', { error: error.message });
+
+    // 📚 CSDL: Unique constraint violation
     if (error.name === 'SequelizeUniqueConstraintError') {
       return res.status(409).json({
         success: false,
@@ -91,6 +145,7 @@ router.post('/register', validate(registerSchema), async (req, res) => {
       });
     }
 
+    // 📚 MẠNG: HTTP 500 Internal Server Error
     res.status(500).json({
       success: false,
       error: 'Lỗi server khi đăng ký tài khoản'
@@ -99,28 +154,33 @@ router.post('/register', validate(registerSchema), async (req, res) => {
 });
 
 // =============================================================================
-// POST /auth/login - Đăng nhập
+// POST /auth/login - ĐĂNG NHẬP
 // =============================================================================
-// Lý thuyết: Authentication Flow
-// 1. Validate input (email, password)
-// 2. Find user by email
-// 3. Verify password (bcrypt compare)
-// 4. Check user active & verified
-// 5. Generate JWT token
-// 6. Return token
-// =============================================================================
-router.post('/login', validate(loginSchema), async (req, res) => {
+// 📚 MÔN AN TOÀN HỆ THỐNG - AUTHENTICATION:
+//    - Verify credentials (email + password)
+//    - Generate session token (JWT)
+//    - Return token to client
+//
+// 📚 SECURITY CONSIDERATIONS:
+//    - Rate limiting: Prevent brute-force attacks
+//    - Constant-time comparison: Prevent timing attacks (bcrypt.compare)
+//    - Generic error message: Don't leak user existence
+
+router.post('/login', validateLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
+    // =========================================================================
+    // STEP 1: FIND USER BY EMAIL
+    // =========================================================================
+    // 📚 CSDL: SELECT * FROM users WHERE email = ?
     const user = await User.findByEmail(email);
 
     if (!user) {
-      // Lý thuyết: Security - Don't leak information
-      // - Không nói "Email không tồn tại" (tiết lộ thông tin)
-      // - Nói chung chung: "Email hoặc password không đúng"
-      // - Chống enumeration attack (đoán email có trong hệ thống)
+      // 📚 AN TOÀN: Generic error message
+      // Không nói "Email không tồn tại" vì:
+      // - Attacker có thể enumerate users
+      // - Biết được emails nào có trong hệ thống
       return res.status(401).json({
         success: false,
         error: 'Email hoặc password không đúng',
@@ -128,14 +188,16 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       });
     }
 
-    // Verify password
+    // =========================================================================
+    // STEP 2: VALIDATE PASSWORD
+    // =========================================================================
+    // 📚 AN TOÀN: Bcrypt compare (constant-time)
+    // - Hash input password với salt từ stored hash
+    // - Compare hashes
+    // - Constant-time prevents timing attacks
     const isPasswordValid = await user.validatePassword(password);
 
     if (!isPasswordValid) {
-      // Lý thuyết: Rate Limiting
-      // - Cần implement rate limiting để chống brute force
-      // - Express-rate-limit middleware
-      // - Lockout account sau N failed attempts
       return res.status(401).json({
         success: false,
         error: 'Email hoặc password không đúng',
@@ -143,8 +205,14 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       });
     }
 
-    // Check if user is active
+    // =========================================================================
+    // STEP 3: CHECK ACCOUNT STATUS
+    // =========================================================================
+    // 📚 CSDL: Soft delete pattern
+    // isActive = false -> account disabled
     if (!user.isActive) {
+      // 📚 MẠNG: HTTP 403 Forbidden
+      // Authenticated but not allowed
       return res.status(403).json({
         success: false,
         error: 'Tài khoản đã bị vô hiệu hóa',
@@ -152,11 +220,17 @@ router.post('/login', validate(loginSchema), async (req, res) => {
       });
     }
 
-    // Generate token
+    // =========================================================================
+    // STEP 4: GENERATE TOKEN
+    // =========================================================================
     const token = generateToken(user);
 
-    logger.info(`User logged in: ${email}`);
+    logger.info('User logged in', { userId: user.id, email: user.email });
 
+    // =========================================================================
+    // STEP 5: RETURN RESPONSE
+    // =========================================================================
+    // 📚 MẠNG: HTTP 200 OK
     res.json({
       success: true,
       message: 'Đăng nhập thành công',
@@ -165,8 +239,9 @@ router.post('/login', validate(loginSchema), async (req, res) => {
         token
       }
     });
+
   } catch (error) {
-    logger.error('Login error:', error);
+    logger.error('Login error:', { error: error.message });
 
     res.status(500).json({
       success: false,
@@ -176,26 +251,40 @@ router.post('/login', validate(loginSchema), async (req, res) => {
 });
 
 // =============================================================================
-// POST /auth/logout - Đăng xuất
+// POST /auth/logout - ĐĂNG XUẤT
 // =============================================================================
-// Lý thuyết: JWT Logout
-// - JWT là stateless, không thể "logout" trực tiếp
-// - Workaround: Blacklist token
-// - Client phải xóa token khỏi localStorage
-// =============================================================================
+// 📚 MÔN AN TOÀN - TOKEN REVOCATION:
+//    - JWT = stateless -> cannot "delete" token
+//    - Solution: Add to blacklist (Redis)
+//    - Token in blacklist = invalid
+//
+// 📚 FLOW:
+//    1. Verify token (middleware)
+//    2. Add token to Redis blacklist với TTL
+//    3. Client should delete token from localStorage
+
 router.post('/logout', verifyToken, async (req, res) => {
   try {
-    // Blacklist current token
+    // =========================================================================
+    // BLACKLIST TOKEN
+    // =========================================================================
+    // 📚 CTDL: Redis SET with TTL - O(1)
+    // TTL = thời gian còn lại đến expiration
     await blacklistToken(req.token);
 
-    logger.info(`User logged out: ${req.user.email}`);
+    logger.info('User logged out', { userId: req.user.id, email: req.user.email });
 
+    // =========================================================================
+    // RETURN SUCCESS
+    // =========================================================================
+    // 📚 MẠNG: HTTP 200 OK
     res.json({
       success: true,
       message: 'Đăng xuất thành công'
     });
+
   } catch (error) {
-    logger.error('Logout error:', error);
+    logger.error('Logout error:', { error: error.message });
 
     res.status(500).json({
       success: false,
@@ -205,32 +294,44 @@ router.post('/logout', verifyToken, async (req, res) => {
 });
 
 // =============================================================================
-// GET /auth/me - Lấy thông tin user hiện tại
+// GET /auth/me - LẤY THÔNG TIN USER HIỆN TẠI
 // =============================================================================
-// Lý thuyết: Protected Route
-// - Yêu cầu authentication (verifyToken middleware)
-// - Return user info từ token
-// =============================================================================
+// 📚 MÔN CÔNG NGHỆ HIỆN ĐẠI - RESTFUL API:
+//    Method: GET (read operation)
+//    Authentication: Required (verifyToken middleware)
+//    Returns: Current user's info from token
+
 router.get('/me', verifyToken, async (req, res) => {
   try {
-    // Find user by ID from token
+    // =========================================================================
+    // FETCH USER FROM DATABASE
+    // =========================================================================
+    // 📚 CSDL: SELECT * FROM users WHERE id = ?
+    // Primary key lookup: O(log n) với B-Tree index
     const user = await User.findByPk(req.user.id);
 
     if (!user) {
+      // User trong token không tồn tại trong DB
+      // (Có thể bị xóa sau khi token được issue)
       return res.status(404).json({
         success: false,
         error: 'Không tìm thấy người dùng'
       });
     }
 
+    // =========================================================================
+    // RETURN USER INFO
+    // =========================================================================
+    // 📚 MẠNG: HTTP 200 OK
     res.json({
       success: true,
       data: {
         user: user.toJSON()
       }
     });
+
   } catch (error) {
-    logger.error('Get user error:', error);
+    logger.error('Get user info error:', { error: error.message });
 
     res.status(500).json({
       success: false,
@@ -240,21 +341,149 @@ router.get('/me', verifyToken, async (req, res) => {
 });
 
 // =============================================================================
-// GET /auth/verify - Verify token validity
+// GET /auth/verify - VERIFY TOKEN
 // =============================================================================
-// Lý thuyết: Token Validation Endpoint
-// - Client có thể check token còn valid không
-// - Useful cho session management
-// =============================================================================
+// 📚 MÔN AN TOÀN - TOKEN VERIFICATION:
+//    - Client có thể gọi API này để check token còn valid
+//    - Dùng khi: App refresh, check before API calls
+//    - verifyToken middleware đã verify -> nếu đến đây = valid
+
 router.get('/verify', verifyToken, (req, res) => {
-  // If we reach here, token is valid (verifyToken middleware passed)
+  // 📚 AN TOÀN: Token đã được verify bởi middleware
+  // Nếu đến được đây -> token hợp lệ
+
+  // 📚 MẠNG: HTTP 200 OK
   res.json({
     success: true,
     message: 'Token hợp lệ',
     data: {
-      user: req.user
+      user: req.user // User info từ token payload
     }
   });
 });
 
+// =============================================================================
+// EXPORT ROUTER
+// =============================================================================
 module.exports = router;
+
+// =============================================================================
+// 📚 KIẾN THỨC MỞ RỘNG: HTTP STATUS CODES
+// =============================================================================
+//
+// === 2xx SUCCESS ===
+//    200 OK: Request thành công
+//    201 Created: Resource mới được tạo (POST)
+//    204 No Content: Thành công, không return data (DELETE)
+//
+// === 4xx CLIENT ERROR ===
+//    400 Bad Request: Invalid syntax/data
+//    401 Unauthorized: Chưa authenticated (no token/invalid token)
+//    403 Forbidden: Authenticated nhưng không có permission
+//    404 Not Found: Resource không tồn tại
+//    409 Conflict: Resource đã tồn tại (duplicate)
+//    422 Unprocessable Entity: Validation errors
+//    429 Too Many Requests: Rate limit exceeded
+//
+// === 5xx SERVER ERROR ===
+//    500 Internal Server Error: Lỗi server chung
+//    502 Bad Gateway: Upstream server error
+//    503 Service Unavailable: Server overloaded/maintenance
+//
+// =============================================================================
+// 📚 RESTFUL API BEST PRACTICES
+// =============================================================================
+//
+// 1. RESOURCE NAMING:
+//    ✅ /users (plural)
+//    ✅ /users/123
+//    ✅ /users/123/posts
+//    ❌ /getUser (verb)
+//    ❌ /user (singular)
+//
+// 2. HTTP METHODS:
+//    GET /users        -> List users
+//    POST /users       -> Create user
+//    GET /users/123    -> Get user 123
+//    PUT /users/123    -> Update user 123 (full replace)
+//    PATCH /users/123  -> Update user 123 (partial)
+//    DELETE /users/123 -> Delete user 123
+//
+// 3. VERSIONING:
+//    ✅ /v1/users
+//    ✅ /api/v2/users
+//    ✅ Header: Accept: application/vnd.api.v2+json
+//
+// 4. FILTERING & PAGINATION:
+//    GET /users?role=admin&limit=10&offset=20
+//    GET /users?page=2&per_page=10
+//
+// 5. ERROR RESPONSES:
+//    {
+//      "success": false,
+//      "error": "Message for user",
+//      "code": "ERROR_CODE",
+//      "details": [...]
+//    }
+//
+// 6. SUCCESS RESPONSES:
+//    {
+//      "success": true,
+//      "data": {...},
+//      "metadata": { "page": 1, "total": 100 }
+//    }
+//
+// =============================================================================
+// 📚 AUTHENTICATION vs AUTHORIZATION
+// =============================================================================
+//
+// AUTHENTICATION (AuthN): "Bạn là ai?"
+//    - Verify identity
+//    - Login với credentials
+//    - Phương pháp:
+//      + Basic Auth: username:password base64
+//      + Bearer Token: JWT, OAuth
+//      + API Key: X-API-Key header
+//      + OAuth 2.0: Authorization code flow
+//
+// AUTHORIZATION (AuthZ): "Bạn có quyền gì?"
+//    - Verify permissions
+//    - Check user có quyền access resource
+//    - Phương pháp:
+//      + RBAC: Role-Based Access Control
+//      + ABAC: Attribute-Based Access Control
+//      + ACL: Access Control List
+//
+// EXAMPLE:
+//    - Authentication: User login -> JWT token
+//    - Authorization: User với role="admin" có thể DELETE users
+//                    User với role="user" chỉ có thể GET users
+//
+// =============================================================================
+// 📊 TỔNG KẾT LIÊN HỆ VỚI ĐỀ CƯƠNG
+// =============================================================================
+//
+// ✅ CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
+//    - RESTful API design, HTTP methods, JSON format
+//    - Status codes, Resource naming
+//
+// ✅ MẠNG MÁY TÍNH:
+//    - HTTP protocol, Request-response model
+//    - Headers, Status codes, Client-server architecture
+//
+// ✅ AN TOÀN HỆ THỐNG:
+//    - Authentication flow, Token management
+//    - Authorization, RBAC, Generic error messages
+//
+// ✅ KỸ THUẬT PHẦN MỀM:
+//    - API design patterns, Error handling
+//    - Middleware pattern, Separation of concerns
+//
+// ✅ CƠ SỞ DỮ LIỆU:
+//    - CRUD operations, B-Tree lookups
+//    - Unique constraints, Soft delete
+//
+// ✅ CẤU TRÚC DỮ LIỆU:
+//    - O(1) Redis operations, O(log n) database lookups
+//
+// =============================================================================

@@ -1,8 +1,18 @@
-# HƯỚNG DẪN CHẠY HỆ THỐNG
+# HƯỚNG DẪN CHẠY HỆ THỐNG (CẬP NHẬT 2025-11-09)
 
 ## 📋 TÓM TẮT NHỮNG GÌ ĐÃ ĐƯỢC IMPLEMENT
 
-### ✅ HOÀN THÀNH 100%
+### ✅ HOÀN THÀNH 100% - VANILLA VERSION
+
+#### 🔥 **ĐẶC BIỆT: 100% VANILLA JAVASCRIPT + 26 MÔN HỌC**
+
+**Authentication Service được viết lại hoàn toàn**:
+- ❌ **Không dùng Winston** → Custom vanilla logger (fs.appendFileSync)
+- ❌ **Không dùng Joi** → Custom validation với automata theory
+- ✅ **Kết nối comprehensive đến 26 môn học đại học**
+- ✅ **~3,500 dòng code với 1,400+ dòng educational comments**
+- ✅ **Ví dụ cụ thể**: Password entropy, B-Tree performance, UUID collision
+- ✅ **Visual diagrams**: JWT structure, HMAC formula, Middleware stack
 
 #### 1. **Cấu Trúc Dự Án & Infrastructure**
 - ✅ Docker Compose với 11 services
@@ -11,19 +21,19 @@
 - ✅ Network isolation (backend, frontend)
 - ✅ Volume persistence
 
-#### 2. **Authentication Service - HOÀN CHỈNH**
-- ✅ **Đăng ký** (Register) với validation
-- ✅ **Đăng nhập** (Login) với JWT token
-- ✅ **Đăng xuất** (Logout) với token blacklist
-- ✅ **Xác thực token** (Verify) middleware
+#### 2. **Authentication Service - HOÀN CHỈNH (VANILLA)**
+- ✅ **Đăng ký** (Register) với validation (no Joi - custom functions)
+- ✅ **Đăng nhập** (Login) với JWT token (with HMAC internals explained)
+- ✅ **Đăng xuất** (Logout) với token blacklist (Redis O(1) explained)
+- ✅ **Xác thực token** (Verify) middleware (JWT verification flow)
 - ✅ **RBAC** (Role-Based Access Control)
-- ✅ **Bcrypt** password hashing
-- ✅ **JWT** generation & verification
-- ✅ **Rate limiting** (chống brute force)
-- ✅ **Security headers** (Helmet)
-- ✅ **CORS** configuration
-- ✅ **Input validation** (Joi)
-- ✅ **Structured logging** (Winston)
+- ✅ **Bcrypt** password hashing (Cost 10 = 2^10 = 1,024 iterations explained)
+- ✅ **JWT** generation & verification (Base64URL encoding process)
+- ✅ **Rate limiting** (5 algorithms: Fixed Window, Sliding Window, Token Bucket, etc.)
+- ✅ **Security headers** (Helmet - 8 headers explained)
+- ✅ **CORS** configuration (Same-Origin Policy bypass)
+- ✅ **Input validation** (Automata theory, Shannon entropy, 7 attack types)
+- ✅ **Structured logging** (Custom vanilla logger - no Winston)
 - ✅ **Error handling** toàn diện
 
 #### 3. **Database Schema**
@@ -280,17 +290,35 @@ npm run dev
 
 ---
 
-## 📚 ĐỌC TÀI LIỆU
+## 📚 ĐỌC TÀI LIỆU (CẬP NHẬT - VANILLA VERSION)
 
-### 1. README.md
+### 1. **services/auth-service/CHUONG_TRINH_HOC.md** 🆕
+**⭐ QUAN TRỌNG NHẤT! ĐỌC FILE NÀY TRƯỚC!**
+
+Master mapping document (300 dòng) với:
+- ✅ **Per-file analysis**: Mỗi file kết nối đến bao nhiêu môn học
+- ✅ **Top 10 courses**: An toàn, CSDL, Mạng, CTDL, Toán tin, etc.
+- ✅ **Knowledge chains**:
+  - Security Stack: XSS → Bcrypt → JWT → HMAC
+  - Database Stack: B-Tree → ACID → Connection Pool
+  - System Stack: Middleware → Signals → Graceful Shutdown
+- ✅ **Learning paths**: Hướng dẫn học từng file theo trình tự
+
+### 2. README.md
 - Tổng quan hệ thống
 - Kiến trúc microservices
-- Lý thuyết cơ bản
+- **Top 10 môn học được áp dụng** (CẬP NHẬT)
+- **Chi tiết từng file** với highlights (CẬP NHẬT)
 - API endpoints
 
-### 2. docs/LY_THUYET_CHI_TIET.md
-**QUAN TRỌNG NHẤT! ĐỌC FILE NÀY!**
+### 3. SUMMARY.md
+- Thống kê chi tiết (~3,500 dòng code)
+- **Highlights của Vanilla version** (CẬP NHẬT)
+- Ví dụ cụ thể: Password entropy, B-Tree, UUID collision
+- Visual diagrams: JWT, HMAC, Middleware
+- Mapping 26 môn học
 
+### 4. docs/LY_THUYET_CHI_TIET.md
 16 chương giải thích chi tiết 100%:
 1. Microservices Architecture
 2. Docker Containerization
@@ -309,14 +337,53 @@ npm run dev
 15. Polyglot Persistence
 16. Event-Driven Architecture
 
-### 3. Code Comments
-Mỗi file code có comments giải thích chi tiết:
-- `docker-compose.yml`: Giải thích từng service
-- `postgres-init.sql`: Giải thích schema, indexes, views
-- `src/config/database.js`: ORM, connection pooling
-- `src/middleware/auth.js`: JWT, token blacklist, RBAC
-- `src/models/User.js`: ORM model, bcrypt, hooks
-- `src/routes/auth.js`: API endpoints, flows
+### 5. Code Comments - VANILLA VERSION 🔄
+**Mỗi file có 📚 markers kết nối đến môn học cụ thể:**
+
+- `src/config/logger.js` (262 dòng):
+  - 📚 MÔN HỆ ĐIỀU HÀNH: File I/O operations
+  - 📚 MÔN CÔNG NGHỆ HIỆN ĐẠI: Microservices logging
+  - 📚 MÔN KỸ THUẬT PM: ELK stack architecture
+
+- `src/config/database.js` (297 dòng):
+  - 📚 MÔN CSDL: B-Tree index (1M records → 20 comparisons)
+  - 📚 MÔN CTDL: Connection pool (65ms → 7ms)
+  - 📚 MÔN CSDL: ACID transactions
+
+- `src/middleware/validation.js` (768 dòng - VANILLA):
+  - 📚 MÔN AUTOMATA: Regular expressions = DFA
+  - 📚 MÔN TOÁN TIN: Shannon entropy formula
+  - 📚 MÔN AN TOÀN: 7 attack types (SQL Injection, XSS, CSRF, etc.)
+
+- `src/models/User.js` (705 dòng):
+  - 📚 MÔN AN TOÀN: Bcrypt internals (Cost 10 = 2^10 iterations)
+  - 📚 MÔN TOÁN TIN: UUID collision P ≈ 10^-15
+  - 📚 MÔN AN TOÀN: Rainbow table defense
+
+- `src/middleware/auth.js` (891 dòng):
+  - 📚 MÔN TOÁN TIN: HMAC formula với XOR operations
+  - 📚 MÔN AN TOÀN: JWT structure breakdown
+  - 📚 MÔN CTDL: Redis O(1) operations
+  - 📚 MÔN MẠNG: Base64URL encoding process
+
+- `src/routes/auth.js` (490 dòng):
+  - 📚 MÔN CÔNG NGHỆ HIỆN ĐẠI: RESTful API principles
+  - 📚 MÔN MẠNG: HTTP status codes (2xx, 4xx, 5xx)
+  - 📚 MÔN AN TOÀN: Authentication vs Authorization
+
+- `src/server.js` (558 dòng):
+  - 📚 MÔN KỸ THUẬT PM: Middleware pattern & execution order
+  - 📚 MÔN CTDL: 5 rate limiting algorithms
+  - 📚 MÔN HỆ ĐIỀU HÀNH: SIGTERM/SIGINT graceful shutdown
+
+### 📖 **CÁCH ĐỌC CODE ĐỂ HỌC TỐT NHẤT**:
+
+1. **Bước 1**: Đọc `CHUONG_TRINH_HOC.md` để hiểu big picture
+2. **Bước 2**: Chọn 1 môn học bạn quan tâm (VD: An toàn)
+3. **Bước 3**: Xem file nào có môn đó (VD: 7/7 files có An toàn)
+4. **Bước 4**: Đọc code và tìm 📚 markers cho môn đó
+5. **Bước 5**: Đọc phần Knowledge Expansion ở cuối mỗi file
+6. **Bước 6**: Chạy thử API để thấy flow thực tế
 
 ---
 

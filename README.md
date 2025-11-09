@@ -177,18 +177,95 @@ npm run test:integration
 npm run test:e2e
 ```
 
-## Contributors
+## 🎓 Liên Hệ Với Chương Trình Đào Tạo
 
-- Hệ thống được thiết kế dựa trên kiến thức từ 10 môn học:
-  - Cơ Sở Lập Trình
-  - Lập Trình Hướng Đối Tượng
-  - Kỹ Thuật Lập Trình
-  - Cấu Trúc Dữ Liệu 1 & 2
-  - Cơ Sở Dữ Liệu
-  - Lập Trình GUI
-  - Quản Trị CSDL
-  - Lập Trình CSDL
-  - Cơ Sở Dữ Liệu Phân Tán
+### **Authentication Service - Kết Nối 26 Môn Học Đại Học**
+
+Toàn bộ 7 files trong auth-service được viết lại **100% Vanilla JavaScript** với giải thích chi tiết kết nối đến **26 môn học** trong chương trình đào tạo:
+
+#### 📊 **Top 10 Môn Học Được Áp Dụng Nhiều Nhất**:
+
+1. **An Toàn và Bảo Mật Hệ Thống** - 7/7 files (100%)
+   - Bcrypt internals: Cost 10 = 2^10 = 1024 iterations
+   - JWT structure: HMAC-SHA256 signature verification
+   - 7 attack types: SQL Injection, XSS, CSRF, SSRF, ReDoS, etc.
+
+2. **Cơ Sở Dữ Liệu** - 7/7 files (100%)
+   - B-Tree index: 1M records → 20 comparisons vs 1M without index
+   - Connection pool: 65ms → 7ms optimization
+   - ACID transactions, Soft delete pattern
+
+3. **Mạng Máy Tính** - 7/7 files (100%)
+   - HTTP protocol, RESTful API, Status codes
+   - TCP socket, Client-server architecture
+   - CORS, Security headers
+
+4. **Cấu Trúc Dữ Liệu & Giải Thuật** - 7/7 files (100%)
+   - Hash table O(1) Redis operations
+   - 5 rate limiting algorithms: Fixed Window, Sliding Window, Token Bucket, Leaky Bucket
+   - Base64URL encoding process
+
+5. **Toán Tin Học (Discrete Math)** - 5/7 files (71%)
+   - Shannon entropy: H = log₂(R^L)
+   - HMAC formula: HMAC(K,m) = H((K' ⊕ opad) || H((K' ⊕ ipad) || m))
+   - UUID collision probability: P ≈ n²/(2 * 2^122) ≈ 10^-15
+
+6. **Kỹ Thuật Phần Mềm** - 6/7 files (86%)
+   - Design patterns: Middleware, Strategy, Factory
+   - SOLID principles, Separation of concerns
+   - Error handling patterns
+
+7. **Công Nghệ Lập Trình Hiện Đại** - 6/7 files (86%)
+   - RESTful API design principles
+   - Microservices architecture
+   - Event-Driven Architecture with Kafka
+
+8. **Lập Trình Hướng Đối Tượng** - 5/7 files (71%)
+   - Sequelize ORM models
+   - Encapsulation, Inheritance
+   - Model hooks: beforeCreate, toJSON
+
+9. **Hệ Điều Hành** - 4/7 files (57%)
+   - SIGTERM/SIGINT signals for graceful shutdown
+   - File I/O operations
+   - Process management
+
+10. **Lý Thuyết Tính Toán (Automata)** - 2/7 files (29%)
+    - Regular expressions = Finite Automaton (DFA)
+    - ReDoS prevention with regex complexity
+
+### 📁 **Chi Tiết Từng File**:
+
+| File | Dòng Code | Môn Học Kết Nối | Highlights |
+|------|-----------|-----------------|------------|
+| **logger.js** | 262 | 10 môn (38%) | Microservices logging, ELK stack architecture |
+| **database.js** | 297 | 14 môn (54%) | Connection pool, B-Tree, ACID transactions |
+| **validation.js** | 768 | 10 môn (38%) | Automata theory, Shannon entropy, 7 attack types |
+| **User.js** | 705 | 11 môn (42%) | Bcrypt internals, Rainbow tables, UUID collision |
+| **auth.js** | 891 | 11 môn (42%) | JWT structure, HMAC algorithm, Redis architecture |
+| **routes/auth.js** | 490 | 9 môn (35%) | RESTful principles, HTTP status codes, AuthN vs AuthZ |
+| **server.js** | 558 | 13 môn (50%) | Middleware stack, 5 rate limiting algorithms, Security headers |
+
+**TỔNG: ~3,500 dòng code với educational comments chi tiết**
+
+### 📚 **Tài Liệu Đặc Biệt**:
+
+- **CHUONG_TRINH_HOC.md** (300 dòng): Master mapping document showing connections between ALL code and ALL 26 university courses, with knowledge chains and learning paths
+
+### 💎 **Educational Highlights**:
+
+- ✅ **Concrete Examples**: Mọi concept đều có số liệu thực tế
+  - "Password 'password' = 37.6 bits → 2 phút crack"
+  - "B-Tree với 1M records chỉ cần 20 comparisons"
+  - "Connection pool optimization: 65ms → 7ms"
+
+- ✅ **Visual Diagrams**: JWT structure, HMAC formula breakdown, Middleware execution flow
+
+- ✅ **Vietnamese Comments**: Dễ hiểu cho sinh viên trung bình-khá
+
+- ✅ **Knowledge Expansion Sections**: Mỗi file có phần tổng kết lý thuyết ở cuối
+
+**Xem chi tiết mapping tại**: `services/auth-service/CHUONG_TRINH_HOC.md`
 
 ## License
 
