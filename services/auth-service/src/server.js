@@ -1,110 +1,242 @@
 // =============================================================================
-// AUTHENTICATION SERVICE - MAIN SERVER (ĐƠN GIẢN HÓA)
+// MAIN SERVER - EXPRESS APP & MIDDLEWARE STACK
 // =============================================================================
-// Giải thích cho sinh viên:
-// File này là TRUNG TÂM của server - khởi tạo Express app và chạy server
+// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
 //
-// CẤU TRÚC:
-// 1. Import các thư viện cần thiết
-// 2. Setup các middleware (helmet, cors, rate-limit, body-parser, ...)
-// 3. Định nghĩa các routes (endpoint APIs)
-// 4. Xử lý lỗi (error handling)
-// 5. Khởi động server
+// 1️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
+//    ✅ Express.js: Web framework for Node.js
+//    ✅ Middleware Pattern: Chain of handlers
+//    ✅ REST API: Stateless HTTP endpoints
+//    ✅ Environment Config: 12-Factor App principles
+//
+// 2️⃣ MÔN MẠNG MÁY TÍNH:
+//    ✅ HTTP Server: TCP socket listening
+//    ✅ CORS: Cross-Origin Resource Sharing
+//    ✅ Client-Server Model: Request-response cycle
+//
+// 3️⃣ MÔN AN TOÀN HỆ THỐNG:
+//    ✅ Helmet: Security headers (XSS, clickjacking)
+//    ✅ Rate Limiting: DDoS protection, brute-force prevention
+//    ✅ CORS Policy: Control allowed origins
+//
+// 4️⃣ MÔN HỆ ĐIỀU HÀNH:
+//    ✅ Process Signals: SIGTERM, SIGINT handling
+//    ✅ Graceful Shutdown: Clean resource cleanup
+//    ✅ Environment Variables: process.env
+//
+// 5️⃣ MÔN CẤU TRÚC DỮ LIỆU:
+//    ✅ Sliding Window: Rate limit algorithm
+//    ✅ Queue: Request queue in middleware chain
+//    ✅ Hash Map: In-memory rate limit storage
+//
+// 6️⃣ MÔN KỸ THUẬT PHẦN MỀM:
+//    ✅ Design Patterns: Middleware, Chain of Responsibility
+//    ✅ Separation of Concerns: Routes, middleware, config
+//    ✅ Error Handling: Centralized error handler
+//
 // =============================================================================
 
-// ===== BƯỚC 1: IMPORT DEPENDENCIES =====
-require('dotenv').config(); // Đọc file .env để lấy biến môi trường
-const express = require('express'); // Framework web
-const helmet = require('helmet'); // Bảo mật headers
-const cors = require('cors'); // Cho phép frontend gọi API
-const rateLimit = require('express-rate-limit'); // Chống spam/brute-force
-const { testConnection } = require('./config/database'); // Kiểm tra DB
-const logger = require('./config/logger'); // Logger
-const authRoutes = require('./routes/auth'); // Auth routes
+require('dotenv').config(); // Load .env variables
+const express = require('express');
+const helmet = require('helmet'); // Security headers
+const cors = require('cors'); // CORS middleware
+const rateLimit = require('express-rate-limit'); // Rate limiting
+const { testConnection } = require('./config/database');
+const logger = require('./config/logger');
+const authRoutes = require('./routes/auth');
 
-// ===== BƯỚC 2: KHỞI TẠO EXPRESS APP =====
+// =============================================================================
+// INITIALIZE EXPRESS APP
+// =============================================================================
 const app = express();
-const PORT = process.env.PORT || 3001; // Port server (mặc định 3001)
+const PORT = process.env.PORT || 3001;
 
 // =============================================================================
-// BƯỚC 3: SETUP MIDDLEWARE
+// MIDDLEWARE STACK - EXECUTION ORDER MATTERS!
 // =============================================================================
-// Giải thích: Middleware = Hàm chạy TRƯỚC KHI request đến route handler
-// Thứ tự middleware QUAN TRỌNG! (chạy từ trên xuống dưới)
+// 📚 MÔN CÔNG NGHỆ HIỆN ĐẠI - MIDDLEWARE PATTERN:
+//
+// MIDDLEWARE = Hàm chạy GIỮA request và response
+//    - Có thể modify req/res
+//    - Có thể kết thúc request-response cycle
+//    - Phải gọi next() để chuyển sang middleware tiếp theo
+//
+// EXECUTION ORDER (top to bottom):
+//    Request -> MW1 -> MW2 -> MW3 -> Route Handler -> Response
+//
+// 📚 MÔN CTDL - CHAIN/QUEUE:
+//    - Middleware stack = Queue (FIFO)
+//    - Request đi qua từng middleware theo thứ tự
+//    - Giống assembly line trong nhà máy
 
-// ===== 3.1: HELMET - BẢO MẬT HEADERS =====
-// Giải thích: Thêm các HTTP headers để bảo vệ app
-// - X-Frame-Options: Chống clickjacking
-// - X-Content-Type-Options: Chống MIME sniffing
-// - Strict-Transport-Security: Bắt buộc dùng HTTPS
+// =============================================================================
+// MIDDLEWARE 1: HELMET - SECURITY HEADERS
+// =============================================================================
+// 📚 MÔN AN TOÀN HỆ THỐNG - HTTP SECURITY HEADERS:
+//
+// HELMET SETS:
+//    - X-Frame-Options: DENY
+//      -> Chống clickjacking (không cho embed trong iframe)
+//
+//    - X-Content-Type-Options: nosniff
+//      -> Chống MIME type sniffing
+//
+//    - Strict-Transport-Security: max-age=15552000
+//      -> Bắt buộc HTTPS (HSTS)
+//
+//    - X-XSS-Protection: 1; mode=block
+//      -> Enable XSS filter trong browser
+//
+//    - Content-Security-Policy: ...
+//      -> Chặn inline scripts (XSS protection)
+//
+// 📚 SECURITY ATTACKS PREVENTED:
+//    - Clickjacking: Attacker embed site trong invisible iframe
+//    - MIME Sniffing: Browser execute file as wrong type
+//    - XSS: Cross-Site Scripting injection
+
 app.use(helmet());
 
-// ===== 3.2: CORS - CHO PHÉP FRONTEND GỌI API =====
-// Giải thích: Mặc định, browser chặn requests từ domain khác (Same-Origin Policy)
-// CORS cho phép frontend (ví dụ: http://localhost:3000) gọi API (http://localhost:3001)
+// =============================================================================
+// MIDDLEWARE 2: CORS - CROSS-ORIGIN RESOURCE SHARING
+// =============================================================================
+// 📚 MÔN MẠNG MÁY TÍNH - SAME-ORIGIN POLICY:
+//
+// SAME-ORIGIN POLICY:
+//    - Browser chặn requests từ domain khác
+//    - Origin = protocol + domain + port
+//    - VD: https://example.com:443 khác https://example.com:8080
+//
+// CORS = Cơ chế để bypass Same-Origin Policy
+//    - Server gửi header: Access-Control-Allow-Origin
+//    - Browser check header -> cho phép request
+//
+// PREFLIGHT REQUEST:
+//    - Browser gửi OPTIONS request trước (cho non-simple requests)
+//    - Check server có cho phép không
+//    - Nếu OK -> gửi request thật
+//
+// EXAMPLE:
+//    Frontend: http://localhost:3000
+//    Backend: http://localhost:3001
+//    Cần CORS để frontend gọi được backend
+
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', // Domains được phép
-  credentials: true, // Cho phép gửi cookies
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', // Allowed domains
+  credentials: true, // Allow cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// ===== 3.3: RATE LIMITING - GIỚI HẠN SỐ REQUEST =====
-// Giải thích: Chống spam và brute-force attacks
-// Nếu 1 IP gửi quá nhiều requests -> chặn tạm thời
+// =============================================================================
+// MIDDLEWARE 3: RATE LIMITING
+// =============================================================================
+// 📚 MÔN AN TOÀN HỆ THỐNG - RATE LIMITING:
+//
+// ALGORITHMS:
+//    1. Fixed Window: 100 requests/15 minutes
+//       - Simple, có burst problem
+//
+//    2. Sliding Window (express-rate-limit sử dụng):
+//       - Track requests trong rolling time window
+//       - Smoother, chống burst
+//
+//    3. Token Bucket:
+//       - Mỗi user có bucket với tokens
+//       - Mỗi request tiêu 1 token
+//       - Tokens refill theo rate
+//
+//    4. Leaky Bucket:
+//       - Requests vào bucket với bất kỳ rate
+//       - Ra với constant rate
+//
+// 📚 MÔN CTDL - SLIDING WINDOW:
+//    - Store: { ip: { count: 5, resetTime: 1710000000 } }
+//    - Hash map: O(1) lookup
+//    - Cleanup expired entries
 
-// Rate limit chung (cho tất cả routes)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 100, // Tối đa 100 requests / 15 phút
-  message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút'
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Max 100 requests per window
+  message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút',
+  standardHeaders: true, // Return `RateLimit-*` headers
+  legacyHeaders: false, // Disable `X-RateLimit-*` headers
 });
-app.use(limiter); // Áp dụng cho tất cả routes
 
-// Rate limit đặc biệt (cho auth routes - nghiêm ngặt hơn)
+app.use(limiter); // Apply to all routes
+
+// Stricter limit for auth routes (prevent brute-force)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 phút
-  max: 5, // Chỉ cho 5 lần login/register / 15 phút
+  windowMs: 15 * 60 * 1000,
+  max: 5, // Only 5 login attempts per 15 minutes
   message: 'Quá nhiều lần đăng nhập/đăng ký, vui lòng thử lại sau 15 phút',
-  skipSuccessfulRequests: true // Không đếm request thành công
+  skipSuccessfulRequests: true // Don't count successful requests
 });
 
-// ===== 3.4: BODY PARSER - PARSE REQUEST BODY =====
-// Giải thích: Chuyển đổi request body từ JSON/form sang JavaScript object
-app.use(express.json({ limit: '10mb' })); // Parse JSON (giới hạn 10MB)
+// =============================================================================
+// MIDDLEWARE 4: BODY PARSER
+// =============================================================================
+// 📚 MÔN MẠNG MÁY TÍNH - HTTP REQUEST BODY:
+//
+// CONTENT-TYPE:
+//    - application/json: JSON data
+//    - application/x-www-form-urlencoded: Form data
+//    - multipart/form-data: File uploads
+//
+// PARSING:
+//    - Raw body (Buffer) -> Parse -> JavaScript object
+//    - JSON: '{"name":"John"}' -> { name: "John" }
+//    - Form: 'name=John&age=30' -> { name: "John", age: "30" }
+//
+// LIMIT:
+//    - 10mb limit để tránh DoS (large payload attack)
+
+app.use(express.json({ limit: '10mb' })); // Parse JSON
 app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse form data
 
-// ===== 3.5: REQUEST LOGGING - GHI LOG MỖI REQUEST =====
-// Giải thích: Log mọi request để debug và monitor
-app.use((req, res, next) => {
-  const start = Date.now(); // Thời điểm bắt đầu
+// =============================================================================
+// MIDDLEWARE 5: REQUEST LOGGING
+// =============================================================================
+// 📚 MÔN HỆ THỐNG PHÂN TÁN - DISTRIBUTED TRACING:
+//    - Log mọi request để debug và monitor
+//    - Trong microservices: Add correlation ID
+//    - Forward logs đến central logging (ELK)
+//
+// 📚 MÔN AN TOÀN: Audit trail
+//    - Track ai làm gì, khi nào
+//    - Forensics khi có security incident
 
-  // Log sau khi response được gửi
+app.use((req, res, next) => {
+  const start = Date.now();
+
+  // Log AFTER response is sent
   res.on('finish', () => {
-    const duration = Date.now() - start; // Thời gian xử lý
+    const duration = Date.now() - start;
     logger.info(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
   });
 
-  next(); // Chuyển sang middleware tiếp theo
+  next();
 });
 
 // =============================================================================
-// BƯỚC 4: ĐỊNH NGHĨA ROUTES (ENDPOINT APIs)
+// ROUTES
 // =============================================================================
+// 📚 MÔN CÔNG NGHỆ HIỆN ĐẠI - ROUTING:
+//    - Route = URL pattern + HTTP method + handler
+//    - RESTful routes: /users, /users/:id
+//    - Middleware before route: Apply to that route only
 
-// ===== 4.1: HEALTH CHECK - KIỂM TRA SERVER SỐNG CHƯA =====
-// Giải thích: Endpoint để Docker/Kubernetes check container còn hoạt động không
+// Health check endpoint (for Docker/K8s)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     service: 'auth-service',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime() // Thời gian server đã chạy (giây)
+    uptime: process.uptime() // Server uptime in seconds
   });
 });
 
-// ===== 4.2: ROOT ENDPOINT - TRANG CHỦ =====
-// Giải thích: Hiển thị thông tin service và danh sách endpoints
+// Root endpoint - API documentation
 app.get('/', (req, res) => {
   res.json({
     service: 'Authentication Service',
@@ -121,19 +253,27 @@ app.get('/', (req, res) => {
   });
 });
 
-// ===== 4.3: AUTH ROUTES - CÁC API XÁC THỰC =====
-// Giải thích: Mount auth routes với prefix /auth
-// - /auth/register -> authRoutes (POST /register)
-// - /auth/login -> authRoutes (POST /login)
-// - ...
+// Mount auth routes với prefix /auth
+// 📚 KỸ THUẬT PM: Modular routes
 app.use('/auth', authLimiter, authRoutes);
 
 // =============================================================================
-// BƯỚC 5: XỬ LÝ LỖI (ERROR HANDLING)
+// ERROR HANDLING
 // =============================================================================
+// 📚 MÔN KỸ THUẬT PHẦN MỀM - ERROR HANDLING PATTERN:
+//
+// ERROR TYPES:
+//    1. 404 Not Found: No route matches
+//    2. Validation errors: Bad input (handled in routes)
+//    3. Database errors: Connection issues, constraints
+//    4. Uncaught exceptions: Bugs in code
+//
+// CENTRALIZED ERROR HANDLER:
+//    - Consistency: All errors same format
+//    - DRY: Error handling logic chỉ viết 1 lần
+//    - Production: Hide stack traces
 
-// ===== 5.1: 404 NOT FOUND - ENDPOINT KHÔNG TỒN TẠI =====
-// Giải thích: Nếu không route nào khớp -> trả về 404
+// 404 Handler - No route found
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -142,32 +282,60 @@ app.use((req, res) => {
   });
 });
 
-// ===== 5.2: GLOBAL ERROR HANDLER - XỬ LÝ TẤT CẢ LỖI =====
-// Giải thích: Middleware với 4 tham số (err, req, res, next)
-// Catch tất cả errors từ async routes
+// Global error handler
+// 📚 MÔN HỆ ĐIỀU HÀNH: Exception handling
 app.use((err, req, res, next) => {
-  logger.error('Lỗi không xử lý được:', { error: err.message });
+  logger.error('Unhandled error:', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path
+  });
 
+  // 📚 AN TOÀN: Không expose stack trace trong production
   res.status(err.status || 500).json({
     success: false,
     error: process.env.NODE_ENV === 'production'
-      ? 'Lỗi server' // Production: Không expose chi tiết lỗi
-      : err.message, // Development: Hiển thị lỗi để debug
+      ? 'Lỗi server' // Generic message
+      : err.message, // Detailed message for development
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
 // =============================================================================
-// BƯỚC 6: KHỞI ĐỘNG SERVER
+// SERVER STARTUP
 // =============================================================================
-// Giải thích: Kiểm tra database trước, sau đó mới start server
+// 📚 MÔN HỆ ĐIỀU HÀNH - PROCESS LIFECYCLE:
+//
+// STARTUP SEQUENCE:
+//    1. Load environment variables (.env)
+//    2. Initialize dependencies (database, redis)
+//    3. Start HTTP server (listen on port)
+//    4. Log startup info
+//
+// 📚 MÔN MẠNG - TCP SOCKET:
+//    - app.listen() tạo TCP socket
+//    - Bind to port 3001
+//    - Listen for incoming connections
 
 async function startServer() {
   try {
-    // Bước 1: Kiểm tra kết nối database
+    // =========================================================================
+    // STEP 1: TEST DATABASE CONNECTION
+    // =========================================================================
+    // 📚 FAIL-FAST PRINCIPLE:
+    //    - Check dependencies trước khi start
+    //    - Nếu DB không connect -> crash ngay
+    //    - Orchestrator (Docker/K8s) sẽ restart
+
     await testConnection();
 
-    // Bước 2: Start server listening
+    // =========================================================================
+    // STEP 2: START HTTP SERVER
+    // =========================================================================
+    // 📚 MẠNG: TCP socket listening
+    //    - Port: 3001
+    //    - Backlog queue: Default 511 (pending connections)
+
     app.listen(PORT, () => {
       logger.info(`🚀 Auth Service đang chạy trên port ${PORT}`);
       logger.info(`📝 Môi trường: ${process.env.NODE_ENV || 'development'}`);
@@ -176,59 +344,214 @@ async function startServer() {
 
   } catch (error) {
     logger.error('❌ Không thể khởi động server:', { error: error.message });
-    process.exit(1); // Exit với code 1 = có lỗi
+    process.exit(1); // Exit code 1 = error
   }
 }
 
 // =============================================================================
-// BƯỚC 7: XỬ LÝ TẮT SERVER (GRACEFUL SHUTDOWN)
+// GRACEFUL SHUTDOWN
 // =============================================================================
-// Giải thích: Khi nhận tín hiệu tắt (SIGTERM/SIGINT), đóng connections trước khi thoát
+// 📚 MÔN HỆ ĐIỀU HÀNH - SIGNAL HANDLING:
+//
+// UNIX SIGNALS:
+//    - SIGTERM: Termination signal (graceful)
+//      Docker stop, Kubernetes pod termination
+//
+//    - SIGINT: Interrupt (Ctrl+C)
+//      User manually stops server
+//
+//    - SIGHUP: Hangup
+//      Terminal closed
+//
+// GRACEFUL SHUTDOWN STEPS:
+//    1. Stop accepting new requests
+//    2. Finish processing current requests
+//    3. Close database connections
+//    4. Close other resources (Redis, file handles)
+//    5. Exit process
 
 function gracefulShutdown(signal) {
   logger.info(`\n${signal} nhận được. Đang tắt server...`);
 
-  // Đóng database connection
+  // Close database
   const { closeConnection } = require('./config/database');
   closeConnection().then(() => {
     logger.info('✅ Đã đóng kết nối database');
     logger.info('👋 Server đã tắt thành công');
-    process.exit(0); // Exit code 0 = thoát bình thường
+    process.exit(0); // Exit code 0 = success
   });
 
-  // Force shutdown sau 30 giây nếu chưa tắt được
+  // Force shutdown after 30 seconds
+  // 📚 HỆ ĐIỀU HÀNH: Timeout để tránh hang
   setTimeout(() => {
     logger.error('⚠️  Buộc tắt server sau 30 giây timeout');
     process.exit(1);
   }, 30000);
 }
 
-// Lắng nghe tín hiệu tắt
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // Docker stop
-process.on('SIGINT', () => gracefulShutdown('SIGINT')); // Ctrl+C
+// Register signal handlers
+// 📚 HỆ ĐIỀU HÀNH: Event-driven architecture
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // =============================================================================
-// BƯỚC 8: XỬ LÝ LỖI KHÔNG CATCH ĐƯỢC
+// UNCAUGHT EXCEPTION HANDLERS
 // =============================================================================
-// Giải thích: Nếu có lỗi không được catch -> log và crash
-// Orchestrator (Docker/K8s) sẽ tự động restart
+// 📚 MÔN HỆ ĐIỀU HÀNH - EXCEPTION HANDLING:
+//
+// UNCAUGHT EXCEPTION:
+//    - Synchronous error không được catch
+//    - VD: undefined.toString()
+//    - Best practice: Crash và restart (fail-fast)
+//
+// UNHANDLED REJECTION:
+//    - Promise rejection không có .catch()
+//    - VD: await fetch() fails, no try-catch
+//    - Node.js sẽ crash (từ v15)
 
-// Uncaught Exception: Lỗi đồng bộ không được catch
 process.on('uncaughtException', (error) => {
-  logger.error('💥 Uncaught Exception:', { error: error.message });
+  logger.error('💥 Uncaught Exception:', {
+    error: error.message,
+    stack: error.stack
+  });
   process.exit(1);
 });
 
-// Unhandled Rejection: Promise rejection không được catch
 process.on('unhandledRejection', (reason, promise) => {
   logger.error('💥 Unhandled Rejection:', { reason });
   process.exit(1);
 });
 
 // =============================================================================
-// KHỞI ĐỘNG SERVER
+// START SERVER
 // =============================================================================
 startServer();
 
-// Export app cho testing
+// Export for testing
 module.exports = app;
+
+// =============================================================================
+// 📚 KIẾN THỨC MỞ RỘNG: MIDDLEWARE PATTERN
+// =============================================================================
+//
+// MIDDLEWARE = Function với signature: (req, res, next)
+//
+// TYPES:
+//    1. Application-level: app.use(middleware)
+//    2. Router-level: router.use(middleware)
+//    3. Error-handling: (err, req, res, next)
+//    4. Built-in: express.json(), express.static()
+//    5. Third-party: helmet(), cors()
+//
+// EXECUTION ORDER:
+//    Request
+//      ↓
+//    MW1 (helmet)
+//      ↓
+//    MW2 (cors)
+//      ↓
+//    MW3 (rate limit)
+//      ↓
+//    MW4 (body parser)
+//      ↓
+//    MW5 (logging)
+//      ↓
+//    Route Handler
+//      ↓
+//    Response
+//
+// ERROR FLOW:
+//    MW1 -> MW2 -> [ERROR] -> Skip to Error Handler
+//
+// =============================================================================
+// 📚 RATE LIMITING ALGORITHMS
+// =============================================================================
+//
+// 1. FIXED WINDOW:
+//    - Counter resets every window
+//    - Simple, but burst problem
+//    - VD: 100 req/min -> 100 at 0:59, 100 at 1:00 = 200 req in 1 second!
+//
+// 2. SLIDING WINDOW LOG:
+//    - Store timestamp of each request
+//    - Count requests in last N seconds
+//    - Accurate, but memory intensive
+//    - O(n) space, O(n) time
+//
+// 3. SLIDING WINDOW COUNTER:
+//    - Weighted average of 2 fixed windows
+//    - Good balance
+//    - O(1) space, O(1) time
+//
+// 4. TOKEN BUCKET:
+//    - Bucket với max tokens
+//    - Each request consumes token
+//    - Tokens refill at rate R
+//    - Allow bursts (up to bucket size)
+//
+// 5. LEAKY BUCKET:
+//    - Queue with max size
+//    - Requests enter at any rate
+//    - Leave at constant rate
+//    - Smooth traffic
+//
+// =============================================================================
+// 📚 HTTP SECURITY HEADERS (HELMET)
+// =============================================================================
+//
+// X-Frame-Options: DENY/SAMEORIGIN
+//    - Chống clickjacking
+//    - Attacker embed site trong iframe để trick user
+//
+// X-Content-Type-Options: nosniff
+//    - Chống MIME sniffing
+//    - Force browser respect Content-Type header
+//
+// Strict-Transport-Security: max-age=31536000
+//    - HSTS: Bắt buộc HTTPS
+//    - Browser tự động upgrade HTTP -> HTTPS
+//
+// Content-Security-Policy: ...
+//    - Whitelist sources cho scripts, styles, images
+//    - Chống XSS bằng cách chặn inline scripts
+//
+// X-XSS-Protection: 1; mode=block
+//    - Enable XSS filter trong old browsers
+//    - Modern browsers dùng CSP thay thế
+//
+// Referrer-Policy: no-referrer
+//    - Control Referer header
+//    - Prevent leak sensitive URLs
+//
+// =============================================================================
+// 📊 TỔNG KẾT LIÊN HỆ VỚI ĐỀ CƯƠNG
+// =============================================================================
+//
+// ✅ CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
+//    - Express.js, Middleware pattern, REST API
+//    - Environment config, 12-Factor App
+//
+// ✅ MẠNG MÁY TÍNH:
+//    - HTTP server, TCP socket, CORS
+//    - Client-server model, Request-response cycle
+//
+// ✅ AN TOÀN HỆ THỐNG:
+//    - Helmet security headers, Rate limiting
+//    - CORS policy, DDoS protection
+//
+// ✅ HỆ ĐIỀU HÀNH:
+//    - Process signals (SIGTERM, SIGINT)
+//    - Graceful shutdown, Exception handling
+//    - Environment variables
+//
+// ✅ CẤU TRÚC DỮ LIỆU:
+//    - Sliding window (rate limit)
+//    - Queue (middleware chain)
+//    - Hash map (in-memory rate limit storage)
+//
+// ✅ KỸ THUẬT PHẦN MỀM:
+//    - Design patterns (Middleware, Chain of Responsibility)
+//    - Separation of concerns, Error handling
+//    - Fail-fast principle
+//
+// =============================================================================
