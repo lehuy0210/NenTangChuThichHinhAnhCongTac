@@ -1,131 +1,110 @@
 // =============================================================================
-// AUTHENTICATION SERVICE - MAIN SERVER
+// AUTHENTICATION SERVICE - MAIN SERVER (ĐƠN GIẢN HÓA)
 // =============================================================================
-// Lý thuyết: Express.js Framework
-// - Minimal web framework cho Node.js
-// - Middleware-based architecture
-// - RESTful API support
+// Giải thích cho sinh viên:
+// File này là TRUNG TÂM của server - khởi tạo Express app và chạy server
+//
+// CẤU TRÚC:
+// 1. Import các thư viện cần thiết
+// 2. Setup các middleware (helmet, cors, rate-limit, body-parser, ...)
+// 3. Định nghĩa các routes (endpoint APIs)
+// 4. Xử lý lỗi (error handling)
+// 5. Khởi động server
 // =============================================================================
 
-require('dotenv').config();
-const express = require('express');
-const helmet = require('helmet');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const { testConnection } = require('./config/database');
-const logger = require('./config/logger');
-const authRoutes = require('./routes/auth');
+// ===== BƯỚC 1: IMPORT DEPENDENCIES =====
+require('dotenv').config(); // Đọc file .env để lấy biến môi trường
+const express = require('express'); // Framework web
+const helmet = require('helmet'); // Bảo mật headers
+const cors = require('cors'); // Cho phép frontend gọi API
+const rateLimit = require('express-rate-limit'); // Chống spam/brute-force
+const { testConnection } = require('./config/database'); // Kiểm tra DB
+const logger = require('./config/logger'); // Logger
+const authRoutes = require('./routes/auth'); // Auth routes
 
-// =============================================================================
-// EXPRESS APP INITIALIZATION
-// =============================================================================
+// ===== BƯỚC 2: KHỞI TẠO EXPRESS APP =====
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3001; // Port server (mặc định 3001)
 
 // =============================================================================
-// SECURITY MIDDLEWARE
+// BƯỚC 3: SETUP MIDDLEWARE
 // =============================================================================
+// Giải thích: Middleware = Hàm chạy TRƯỚC KHI request đến route handler
+// Thứ tự middleware QUAN TRỌNG! (chạy từ trên xuống dưới)
 
-// Lý thuyết: Helmet - Security Headers
-// - Set various HTTP headers để bảo vệ app
+// ===== 3.1: HELMET - BẢO MẬT HEADERS =====
+// Giải thích: Thêm các HTTP headers để bảo vệ app
 // - X-Frame-Options: Chống clickjacking
 // - X-Content-Type-Options: Chống MIME sniffing
-// - Strict-Transport-Security: Force HTTPS
-// - X-XSS-Protection: Chống XSS attacks
+// - Strict-Transport-Security: Bắt buộc dùng HTTPS
 app.use(helmet());
 
-// Lý thuyết: CORS (Cross-Origin Resource Sharing)
-// - Browser security: Chặn requests từ domain khác
-// - CORS headers cho phép specific origins
-// - Cần thiết cho frontend (React) gọi API từ domain khác
+// ===== 3.2: CORS - CHO PHÉP FRONTEND GỌI API =====
+// Giải thích: Mặc định, browser chặn requests từ domain khác (Same-Origin Policy)
+// CORS cho phép frontend (ví dụ: http://localhost:3000) gọi API (http://localhost:3001)
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*',
-  credentials: true, // Allow cookies
+  origin: process.env.ALLOWED_ORIGINS?.split(',') || '*', // Domains được phép
+  credentials: true, // Cho phép gửi cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// =============================================================================
-// RATE LIMITING
-// =============================================================================
-// Lý thuyết: Rate Limiting
-// - Giới hạn số requests từ một IP trong thời gian nhất định
-// - Chống brute force attacks
-// - Chống DDoS attacks
-// - Sliding window algorithm
+// ===== 3.3: RATE LIMITING - GIỚI HẠN SỐ REQUEST =====
+// Giải thích: Chống spam và brute-force attacks
+// Nếu 1 IP gửi quá nhiều requests -> chặn tạm thời
+
+// Rate limit chung (cho tất cả routes)
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút',
-  standardHeaders: true, // Return rate limit info in `RateLimit-*` headers
-  legacyHeaders: false, // Disable `X-RateLimit-*` headers
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 100, // Tối đa 100 requests / 15 phút
+  message: 'Quá nhiều requests từ IP này, vui lòng thử lại sau 15 phút'
 });
+app.use(limiter); // Áp dụng cho tất cả routes
 
-// Apply rate limiting to all routes
-app.use(limiter);
-
-// Stricter rate limit for auth routes
+// Rate limit đặc biệt (cho auth routes - nghiêm ngặt hơn)
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // Limit auth routes to 5 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 phút
+  max: 5, // Chỉ cho 5 lần login/register / 15 phút
   message: 'Quá nhiều lần đăng nhập/đăng ký, vui lòng thử lại sau 15 phút',
-  skipSuccessfulRequests: true // Don't count successful requests
+  skipSuccessfulRequests: true // Không đếm request thành công
 });
 
-// =============================================================================
-// BODY PARSING MIDDLEWARE
-// =============================================================================
-// Lý thuyết: Body Parsing
-// - express.json(): Parse JSON request body
-// - express.urlencoded(): Parse URL-encoded form data
-// - limit: Giới hạn kích thước request body (chống payload attacks)
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+// ===== 3.4: BODY PARSER - PARSE REQUEST BODY =====
+// Giải thích: Chuyển đổi request body từ JSON/form sang JavaScript object
+app.use(express.json({ limit: '10mb' })); // Parse JSON (giới hạn 10MB)
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Parse form data
 
-// =============================================================================
-// REQUEST LOGGING MIDDLEWARE
-// =============================================================================
-// Lý thuyết: HTTP Request Logging
-// - Log mọi incoming requests
-// - Useful cho debugging và monitoring
-// - Track: method, URL, status code, response time
+// ===== 3.5: REQUEST LOGGING - GHI LOG MỖI REQUEST =====
+// Giải thích: Log mọi request để debug và monitor
 app.use((req, res, next) => {
-  const start = Date.now();
+  const start = Date.now(); // Thời điểm bắt đầu
 
   // Log sau khi response được gửi
   res.on('finish', () => {
-    const duration = Date.now() - start;
-    logger.http(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
+    const duration = Date.now() - start; // Thời gian xử lý
+    logger.info(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
   });
 
-  next();
+  next(); // Chuyển sang middleware tiếp theo
 });
 
 // =============================================================================
-// HEALTH CHECK ENDPOINT
+// BƯỚC 4: ĐỊNH NGHĨA ROUTES (ENDPOINT APIs)
 // =============================================================================
-// Lý thuyết: Health Check
-// - Endpoint để check service còn sống không
-// - Docker/Kubernetes dùng để monitor container health
-// - Load balancer dùng để check backend healthy
+
+// ===== 4.1: HEALTH CHECK - KIỂM TRA SERVER SỐNG CHƯA =====
+// Giải thích: Endpoint để Docker/Kubernetes check container còn hoạt động không
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     service: 'auth-service',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime() // Thời gian server đã chạy (giây)
   });
 });
 
-// =============================================================================
-// API ROUTES
-// =============================================================================
-// Lý thuyết: Route Mounting
-// - Prefix /auth cho tất cả auth routes
-// - Modular routing (separation of concerns)
-app.use('/auth', authLimiter, authRoutes);
-
-// Root endpoint
+// ===== 4.2: ROOT ENDPOINT - TRANG CHỦ =====
+// Giải thích: Hiển thị thông tin service và danh sách endpoints
 app.get('/', (req, res) => {
   res.json({
     service: 'Authentication Service',
@@ -142,12 +121,19 @@ app.get('/', (req, res) => {
   });
 });
 
+// ===== 4.3: AUTH ROUTES - CÁC API XÁC THỰC =====
+// Giải thích: Mount auth routes với prefix /auth
+// - /auth/register -> authRoutes (POST /register)
+// - /auth/login -> authRoutes (POST /login)
+// - ...
+app.use('/auth', authLimiter, authRoutes);
+
 // =============================================================================
-// 404 HANDLER
+// BƯỚC 5: XỬ LÝ LỖI (ERROR HANDLING)
 // =============================================================================
-// Lý thuyết: 404 Not Found
-// - Catch-all route cho undefined endpoints
-// - Phải đặt sau tất cả routes khác
+
+// ===== 5.1: 404 NOT FOUND - ENDPOINT KHÔNG TỒN TẠI =====
+// Giải thích: Nếu không route nào khớp -> trả về 404
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -156,108 +142,93 @@ app.use((req, res) => {
   });
 });
 
-// =============================================================================
-// ERROR HANDLING MIDDLEWARE
-// =============================================================================
-// Lý thuyết: Centralized Error Handling
-// - Middleware với 4 parameters (err, req, res, next)
-// - Catch tất cả errors từ async routes
-// - Single place để handle errors
+// ===== 5.2: GLOBAL ERROR HANDLER - XỬ LÝ TẤT CẢ LỖI =====
+// Giải thích: Middleware với 4 tham số (err, req, res, next)
+// Catch tất cả errors từ async routes
 app.use((err, req, res, next) => {
-  logger.error('Unhandled error:', err);
+  logger.error('Lỗi không xử lý được:', { error: err.message });
 
-  // Lý thuyết: Error Response
-  // - Không expose stack trace trong production
-  // - Return generic error message
   res.status(err.status || 500).json({
     success: false,
     error: process.env.NODE_ENV === 'production'
-      ? 'Lỗi server'
-      : err.message,
+      ? 'Lỗi server' // Production: Không expose chi tiết lỗi
+      : err.message, // Development: Hiển thị lỗi để debug
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
 // =============================================================================
-// SERVER STARTUP
+// BƯỚC 6: KHỞI ĐỘNG SERVER
 // =============================================================================
-// Lý thuyết: Asynchronous Initialization
-// - Test database connection trước khi start server
-// - Fail fast nếu không connect được database
-const startServer = async () => {
+// Giải thích: Kiểm tra database trước, sau đó mới start server
+
+async function startServer() {
   try {
-    // Test database connection
+    // Bước 1: Kiểm tra kết nối database
     await testConnection();
 
-    // Start listening
+    // Bước 2: Start server listening
     app.listen(PORT, () => {
-      logger.info(`🚀 Auth Service listening on port ${PORT}`);
-      logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`🚀 Auth Service đang chạy trên port ${PORT}`);
+      logger.info(`📝 Môi trường: ${process.env.NODE_ENV || 'development'}`);
       logger.info(`🗄️  Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
     });
+
   } catch (error) {
-    logger.error('❌ Failed to start server:', error);
-    process.exit(1);
+    logger.error('❌ Không thể khởi động server:', { error: error.message });
+    process.exit(1); // Exit với code 1 = có lỗi
   }
-};
+}
 
 // =============================================================================
-// GRACEFUL SHUTDOWN
+// BƯỚC 7: XỬ LÝ TẮT SERVER (GRACEFUL SHUTDOWN)
 // =============================================================================
-// Lý thuyết: Graceful Shutdown
-// - Đóng connections khi nhận SIGTERM/SIGINT
-// - Finish processing requests đang chạy
-// - Close database connections
-// - Docker/Kubernetes gửi SIGTERM trước khi kill container
-const gracefulShutdown = (signal) => {
-  logger.info(`\n${signal} received. Starting graceful shutdown...`);
+// Giải thích: Khi nhận tín hiệu tắt (SIGTERM/SIGINT), đóng connections trước khi thoát
 
-  // Lý thuyết: Server.close()
-  // - Stop accepting new connections
-  // - Wait for existing connections to finish
-  // - Timeout after 30s
-  const server = app.listen(PORT);
+function gracefulShutdown(signal) {
+  logger.info(`\n${signal} nhận được. Đang tắt server...`);
 
-  server.close(() => {
-    logger.info('✅ HTTP server closed');
-
-    // Close database connection
-    const { closeConnection } = require('./config/database');
-    closeConnection().then(() => {
-      logger.info('👋 Graceful shutdown completed');
-      process.exit(0);
-    });
+  // Đóng database connection
+  const { closeConnection } = require('./config/database');
+  closeConnection().then(() => {
+    logger.info('✅ Đã đóng kết nối database');
+    logger.info('👋 Server đã tắt thành công');
+    process.exit(0); // Exit code 0 = thoát bình thường
   });
 
-  // Force shutdown after 30s
+  // Force shutdown sau 30 giây nếu chưa tắt được
   setTimeout(() => {
-    logger.error('⚠️  Forceful shutdown after timeout');
+    logger.error('⚠️  Buộc tắt server sau 30 giây timeout');
     process.exit(1);
   }, 30000);
-};
+}
 
-// Handle shutdown signals
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Lắng nghe tín hiệu tắt
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM')); // Docker stop
+process.on('SIGINT', () => gracefulShutdown('SIGINT')); // Ctrl+C
 
 // =============================================================================
-// UNHANDLED REJECTION/EXCEPTION HANDLERS
+// BƯỚC 8: XỬ LÝ LỖI KHÔNG CATCH ĐƯỢC
 // =============================================================================
-// Lý thuyết: Process-level Error Handlers
-// - uncaughtException: Synchronous errors không được catch
-// - unhandledRejection: Promise rejections không được catch
-// - Best practice: Log và crash, để orchestrator restart
+// Giải thích: Nếu có lỗi không được catch -> log và crash
+// Orchestrator (Docker/K8s) sẽ tự động restart
+
+// Uncaught Exception: Lỗi đồng bộ không được catch
 process.on('uncaughtException', (error) => {
-  logger.error('💥 Uncaught Exception:', error);
+  logger.error('💥 Uncaught Exception:', { error: error.message });
   process.exit(1);
 });
 
+// Unhandled Rejection: Promise rejection không được catch
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+  logger.error('💥 Unhandled Rejection:', { reason });
   process.exit(1);
 });
 
-// Start the server
+// =============================================================================
+// KHỞI ĐỘNG SERVER
+// =============================================================================
 startServer();
 
-module.exports = app; // Export cho testing
+// Export app cho testing
+module.exports = app;

@@ -1,43 +1,54 @@
 // =============================================================================
-// AUTHENTICATION MIDDLEWARE
+// AUTHENTICATION MIDDLEWARE - XÁC THỰC NGƯỜI DÙNG (ĐƠN GIẢN HÓA)
 // =============================================================================
-// Lý thuyết: Middleware Pattern
-// - Function chạy giữa request và response
-// - Chain of Responsibility pattern
-// - req -> middleware1 -> middleware2 -> controller -> res
+// Giải thích cho sinh viên:
+// Middleware = Hàm chạy GIỮA request và controller
+// Authentication = Xác định "Bạn là ai?"
+//
+// LUỒNG HOẠT ĐỘNG:
+// 1. Client gửi request + JWT token (trong header Authorization)
+// 2. Middleware này chặn request, kiểm tra token
+// 3. Nếu token hợp lệ -> cho phép tiếp tục (next())
+// 4. Nếu token không hợp lệ -> trả về lỗi 401 Unauthorized
 // =============================================================================
 
-const jwt = require('jsonwebtoken');
-const { createClient } = require('redis');
+const jwt = require('jsonwebtoken'); // Thư viện JWT
+const { createClient } = require('redis'); // Thư viện Redis
 const logger = require('../config/logger');
 
 // =============================================================================
-// Lý thuyết: JWT (JSON Web Token)
-// - Stateless authentication (không cần lưu session trên server)
-// - Self-contained: Chứa user info trong token
-// - Structure: Header.Payload.Signature
+// KHÁI NIỆM: JWT (JSON WEB TOKEN)
+// =============================================================================
+// JWT = Chuỗi mã hóa chứa thông tin user
 //
-// Header: { "alg": "HS256", "typ": "JWT" }
-// Payload: { "userId": "123", "email": "user@example.com", "iat": 1234567890, "exp": 1234654290 }
-// Signature: HMACSHA256(base64(header) + "." + base64(payload), secret)
+// CẤU TRÚC JWT: Header.Payload.Signature
+// - Header: { "alg": "HS256", "typ": "JWT" }
+// - Payload: { "userId": "123", "email": "user@test.com", "exp": 1234567890 }
+// - Signature: HMAC(Header + Payload, SECRET_KEY)
 //
-// Ưu điểm:
-// - Scalable: Không cần shared session storage
-// - Cross-domain: Dùng được cho nhiều services (microservices)
-// - Mobile-friendly: Dễ sử dụng cho mobile apps
+// VÍ DỤ JWT:
+// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxMjMiLCJlbWFpbCI6InVzZXJAdGVzdC5jb20ifQ.xyz123abc
 //
-// Nhược điểm:
-// - Không thể revoke (phải dùng blacklist)
+// ƯU ĐIỂM:
+// - Stateless: Server không cần lưu session
+// - Scalable: Nhiều server có thể verify cùng 1 token
+// - Mobile-friendly: Dễ dùng cho app mobile
+//
+// NHƯỢC ĐIỂM:
+// - Không thể thu hồi token (cần dùng blacklist)
 // - Token size lớn hơn session ID
 // =============================================================================
 
-// Redis client cho token blacklist
+// =============================================================================
+// BƯỚC 1: KẾT NỐI REDIS
+// =============================================================================
+// Giải thích: Redis = Database trong RAM (cực nhanh)
+// Dùng để lưu blacklist (danh sách token bị vô hiệu hóa khi logout)
+
 let redisClient;
 
-// Lý thuyết: Redis Connection
-// - In-memory database, cực nhanh (< 1ms latency)
-// - Dùng cho caching, session, blacklist
-const initRedis = async () => {
+async function initRedis() {
+  // Tạo Redis client
   redisClient = createClient({
     socket: {
       host: process.env.REDIS_HOST || 'localhost',
@@ -46,28 +57,32 @@ const initRedis = async () => {
     password: process.env.REDIS_PASSWORD
   });
 
-  redisClient.on('error', (err) => logger.error('Redis Client Error', err));
-  redisClient.on('connect', () => logger.info('✅ Redis connected'));
+  // Xử lý sự kiện
+  redisClient.on('error', (err) => logger.error('Redis lỗi:', { error: err }));
+  redisClient.on('connect', () => logger.info('✅ Redis đã kết nối'));
 
+  // Kết nối
   await redisClient.connect();
-};
+}
 
+// Khởi tạo Redis
 initRedis().catch(logger.error);
 
 // =============================================================================
-// VERIFY JWT TOKEN
-// Lý thuyết: Authentication vs Authorization
-// - Authentication: Xác định "BẠN LÀ AI" (verify identity)
-// - Authorization: Xác định "BẠN CÓ QUYỀN GÌ" (check permissions)
+// BƯỚC 2: MIDDLEWARE VERIFY TOKEN (KIỂM TRA TOKEN)
 // =============================================================================
+// Giải thích: Middleware này kiểm tra token có hợp lệ không
+// Cách dùng: app.get('/protected', verifyToken, controller)
+
 const verifyToken = async (req, res, next) => {
   try {
-    // Lý thuyết: Bearer Token
-    // - Standard: RFC 6750
-    // - Format: "Authorization: Bearer <token>"
-    // - Bearer = người mang token này có quyền truy cập
+    // ===== BƯỚC 2.1: LẤY TOKEN TỪ HEADER =====
+    // Giải thích: Token được gửi trong header Authorization
+    // Format: "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5..."
+
     const authHeader = req.headers.authorization;
 
+    // Kiểm tra có header Authorization không
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -75,13 +90,14 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Extract token
-    const token = authHeader.substring(7); // Remove "Bearer "
+    // Cắt bỏ "Bearer " để lấy token
+    // "Bearer xyz123" -> "xyz123"
+    const token = authHeader.substring(7);
 
-    // Lý thuyết: Token Blacklist
-    // - Khi user logout, thêm token vào blacklist
-    // - Check blacklist trước khi verify
-    // - TTL = thời gian còn lại của token
+    // ===== BƯỚC 2.2: KIỂM TRA BLACKLIST =====
+    // Giải thích: Khi user logout, token được thêm vào blacklist
+    // Nếu token trong blacklist -> từ chối
+
     const isBlacklisted = await redisClient.get(`blacklist:${token}`);
     if (isBlacklisted) {
       return res.status(401).json({
@@ -90,36 +106,33 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
-    // Lý thuyết: JWT Verification
-    // - Verify signature với secret key
-    // - Check expiration (exp claim)
-    // - Nếu signature không khớp = token bị giả mạo
+    // ===== BƯỚC 2.3: VERIFY TOKEN =====
+    // Giải thích: Kiểm tra token có hợp lệ không
+    // - Signature có đúng không? (chống giả mạo)
+    // - Token đã hết hạn chưa? (check expiration)
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Lý thuyết: Token Claims
-    // - iat (issued at): Khi token được tạo
-    // - exp (expiration): Khi token hết hạn
-    // - sub (subject): User ID
-    // - Custom claims: email, role, permissions
+    // Token hợp lệ -> Lưu thông tin user vào req.user
+    // Controller sau này có thể dùng req.user
     req.user = {
       id: decoded.userId,
       email: decoded.email,
-      role: decoded.role
+      role: decoded.role || 'user'
     };
 
-    req.token = token;
+    req.token = token; // Lưu token cho các middleware sau
 
-    // Lý thuyết: Middleware Chain
-    // - next() = chuyển sang middleware tiếp theo
-    // - Không gọi next() = request bị dừng ở đây
+    // ===== BƯỚC 2.4: CHO PHÉP TIẾP TỤC =====
+    // Giải thích: next() = chuyển sang middleware/controller tiếp theo
     next();
-  } catch (error) {
-    logger.error('Token verification failed:', error);
 
-    // Lý thuyết: JWT Errors
-    // - JsonWebTokenError: Invalid token (signature không khớp)
-    // - TokenExpiredError: Token đã hết hạn
-    // - NotBeforeError: Token chưa active (nbf claim)
+  } catch (error) {
+    logger.error('Lỗi khi verify token:', { error: error.message });
+
+    // ===== XỬ LÝ CÁC LOẠI LỖI JWT =====
+
+    // Lỗi 1: Token hết hạn
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
@@ -128,6 +141,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
+    // Lỗi 2: Token không hợp lệ (signature sai)
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
@@ -136,6 +150,7 @@ const verifyToken = async (req, res, next) => {
       });
     }
 
+    // Lỗi khác
     return res.status(500).json({
       success: false,
       error: 'Lỗi xác thực token.'
@@ -144,17 +159,15 @@ const verifyToken = async (req, res, next) => {
 };
 
 // =============================================================================
-// CHECK USER ROLE
-// Lý thuyết: RBAC (Role-Based Access Control)
-// - Authorization based on user roles
-// - roles = ['admin', 'editor', 'viewer']
-// - Higher-order function: Returns middleware function
+// BƯỚC 3: MIDDLEWARE REQUIRE ROLE (KIỂM TRA QUYỀN)
 // =============================================================================
+// Giải thích: Middleware này kiểm tra user có quyền truy cập không
+// Cách dùng: app.delete('/users/:id', verifyToken, requireRole('admin'), controller)
+
 const requireRole = (...allowedRoles) => {
+  // Trả về middleware function
   return (req, res, next) => {
-    // Lý thuyết: Authorization Check
-    // - Phải có req.user (đã authenticated)
-    // - Check role có trong allowedRoles không
+    // Kiểm tra đã authenticated chưa
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -162,6 +175,10 @@ const requireRole = (...allowedRoles) => {
       });
     }
 
+    // Kiểm tra role có trong allowedRoles không
+    // VÍ DỤ: allowedRoles = ['admin', 'editor']
+    //        req.user.role = 'user'
+    //        -> Không có quyền -> 403 Forbidden
     if (!allowedRoles.includes(req.user.role)) {
       return res.status(403).json({
         success: false,
@@ -170,83 +187,116 @@ const requireRole = (...allowedRoles) => {
       });
     }
 
+    // Có quyền -> cho phép tiếp tục
     next();
   };
 };
 
 // =============================================================================
-// BLACKLIST TOKEN (for logout)
-// Lý thuyết: Token Revocation
-// - JWT không thể revoke trực tiếp (stateless)
-// - Workaround: Lưu blacklist trong Redis
-// - TTL = thời gian còn lại của token
+// BƯỚC 4: HÀM BLACKLIST TOKEN (VÔ HIỆU HÓA TOKEN KHI LOGOUT)
 // =============================================================================
+// Giải thích: Khi user logout, thêm token vào blacklist
+// Token trong blacklist sẽ bị từ chối khi verify
+
 const blacklistToken = async (token) => {
   try {
-    // Decode token to get expiration
+    // Decode token để lấy expiration time
     const decoded = jwt.decode(token);
 
     if (!decoded || !decoded.exp) {
-      throw new Error('Invalid token');
+      throw new Error('Token không hợp lệ');
     }
 
-    // Lý thuyết: TTL (Time To Live)
-    // - exp = Unix timestamp (seconds)
-    // - now = Date.now() / 1000
-    // - ttl = exp - now (seconds còn lại)
-    const now = Math.floor(Date.now() / 1000);
-    const ttl = decoded.exp - now;
+    // Tính TTL (Time To Live) - Thời gian còn lại của token
+    // exp = Unix timestamp (giây)
+    const now = Math.floor(Date.now() / 1000); // Thời gian hiện tại (giây)
+    const ttl = decoded.exp - now; // Thời gian còn lại (giây)
 
+    // Nếu token còn hạn -> thêm vào blacklist
     if (ttl > 0) {
-      // Add to blacklist with TTL
-      // Lý thuyết: Redis SETEX
-      // - SET key value EX seconds
-      // - Tự động xóa key sau TTL seconds
+      // Lưu vào Redis với TTL
+      // Sau TTL giây, Redis tự động xóa key này
       await redisClient.setEx(`blacklist:${token}`, ttl, 'true');
-      logger.info(`Token blacklisted for ${ttl} seconds`);
+      logger.info(`Token đã được blacklist trong ${ttl} giây`);
     }
 
     return true;
   } catch (error) {
-    logger.error('Failed to blacklist token:', error);
+    logger.error('Lỗi khi blacklist token:', { error: error.message });
     throw error;
   }
 };
 
 // =============================================================================
-// GENERATE JWT TOKEN
-// Lý thuyết: Token Generation
-// - Payload: User info (không sensitive!)
-// - Secret: Server secret key (PHẢI giữ bí mật!)
-// - Options: expiresIn, algorithm
+// BƯỚC 5: HÀM GENERATE TOKEN (TẠO TOKEN MỚI)
 // =============================================================================
+// Giải thích: Tạo JWT token mới khi user đăng nhập
+// Input: User object
+// Output: JWT token string
+
 const generateToken = (user) => {
-  // Lý thuyết: JWT Payload
-  // - KHÔNG chứa sensitive data (password, credit card)
-  // - Payload có thể decode dễ dàng (base64)
-  // - Signature đảm bảo payload không bị sửa
+  // ===== BƯỚC 5.1: TẠO PAYLOAD =====
+  // Giải thích: Payload = Thông tin user lưu trong token
+  // LƯU Ý: KHÔNG lưu thông tin nhạy cảm (password, credit card)
+  // Vì payload có thể decode dễ dàng (chỉ base64)
+
   const payload = {
     userId: user.id,
     email: user.email,
     role: user.role || 'user'
   };
 
-  // Lý thuyết: Token Options
-  // - expiresIn: '24h', '7d', '30m'
-  // - algorithm: 'HS256' (HMAC SHA256) - symmetric
-  //              'RS256' (RSA SHA256) - asymmetric (public/private key)
+  // ===== BƯỚC 5.2: TẠO OPTIONS =====
+  // Giải thích: Các tùy chọn khi tạo token
+  // - expiresIn: Thời gian token hết hạn ('24h', '7d', '30m')
+  // - algorithm: Thuật toán mã hóa (HS256 = HMAC SHA256)
+
   const options = {
-    expiresIn: process.env.JWT_EXPIRY || '24h',
+    expiresIn: process.env.JWT_EXPIRY || '24h', // Mặc định 24 giờ
     algorithm: 'HS256'
   };
+
+  // ===== BƯỚC 5.3: TẠO TOKEN =====
+  // Giải thích: jwt.sign() tạo token từ payload + secret + options
+  // Secret key PHẢI giữ bí mật! (lưu trong .env)
 
   return jwt.sign(payload, process.env.JWT_SECRET, options);
 };
 
+// =============================================================================
+// EXPORT
+// =============================================================================
+// Giải thích: Export các hàm để dùng ở các file khác
+
 module.exports = {
-  verifyToken,
-  requireRole,
-  blacklistToken,
-  generateToken,
-  redisClient
+  verifyToken,     // Middleware verify token
+  requireRole,     // Middleware check role
+  blacklistToken,  // Hàm blacklist token
+  generateToken,   // Hàm tạo token
+  redisClient      // Redis client
 };
+
+// =============================================================================
+// VÍ DỤ SỬ DỤNG
+// =============================================================================
+// const { verifyToken, requireRole, generateToken } = require('./middleware/auth');
+//
+// // Route không cần authentication
+// app.get('/public', (req, res) => { ... });
+//
+// // Route cần authentication (phải đăng nhập)
+// app.get('/profile', verifyToken, (req, res) => {
+//   console.log(req.user); // { id: '123', email: 'user@test.com', role: 'user' }
+// });
+//
+// // Route cần authentication + authorization (phải là admin)
+// app.delete('/users/:id', verifyToken, requireRole('admin'), (req, res) => {
+//   // Chỉ admin mới vào được đây
+// });
+//
+// // Tạo token khi đăng nhập
+// app.post('/login', async (req, res) => {
+//   const user = await User.findByEmail(req.body.email);
+//   const token = generateToken(user);
+//   res.json({ token });
+// });
