@@ -1,38 +1,95 @@
 // =============================================================================
 // INPUT VALIDATION & SANITIZATION - VANILLA JAVASCRIPT
 // =============================================================================
-// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
+// 📚 ÁP DỤNG KIẾN THỨC TỪ ĐỀ CƯƠNG MÔN HỌC ĐẠI HỌC:
 //
-// 1️⃣ MÔN AN TOÀN HỆ THỐNG (Security):
-//    ✅ Input Validation: Chặn SQL Injection, XSS, Command Injection
-//    ✅ Password Policy: Độ phức tạp mật khẩu (NIST guidelines)
-//    ✅ Data Sanitization: Làm sạch dữ liệu người dùng
-//    ✅ Defense in Depth: Nhiều lớp bảo vệ (validate + sanitize + escape)
+// 1️⃣ MÔN AN TOÀN VÀ BẢO MẬT HỆ THỐNG (AN TOAN HE THONG.pdf):
+//    📖 CHƯƠNG 1: GIỚI THIỆU VỀ BẢO MẬT HỆ THỐNG
+//       - 1.2 Các loại tấn công: SQL Injection, XSS, Command Injection
+//       - 1.3 Defense in Depth: Nhiều lớp bảo vệ (validate + sanitize + escape)
 //
-// 2️⃣ MÔN LÝ THUYẾT AUTOMATA VÀ NGÔN NGỮ HÌNH THỨC:
-//    ✅ Regular Expressions: Finite Automata để matching patterns
-//    ✅ DFA (Deterministic Finite Automaton): Email/URL regex = DFA
-//    ✅ Pattern Matching: Regex engine sử dụng backtracking
+//    📖 CHƯƠNG 2: PASSWORD SECURITY & AUTHENTICATION
+//       - 2.1 Password Policy: NIST SP 800-63B guidelines
+//       - 2.2 Password Strength: Entropy calculation (Shannon formula)
+//       - 2.3 Brute Force Attacks: Time complexity of cracking
+//       - Ví dụ: Password "password" (37.6 bits) → crack trong 2 phút
 //
-// 3️⃣ MÔN CẤU TRÚC DỮ LIỆU & GIẢI THUẬT 1:
-//    ✅ String Operations: charAt, substring, indexOf - O(n)
-//    ✅ Array Operations: push(), map(), filter() - O(n)
-//    ✅ Linear Search: Tìm ký tự đặc biệt trong password - O(n)
+//    📖 CHƯƠNG 3: WEB APPLICATION SECURITY
+//       - 3.1 Input Validation: First line of defense
+//       - 3.2 SQL Injection: Chặn ký tự ', ", --, ;
+//       - 3.3 XSS (Cross-Site Scripting): Chặn <script>, <iframe>
+//       - 3.4 SSRF (Server-Side Request Forgery): Whitelist domains
 //
-// 4️⃣ MÔN LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (OOP):
-//    ✅ Higher-Order Functions: createValidator() nhận function làm tham số
-//    ✅ Factory Pattern: createValidator() tạo middleware
-//    ✅ Encapsulation: Gom các validation rules vào functions
+//    📖 CHƯƠNG 4: CRYPTOGRAPHY FOUNDATIONS
+//       - 4.2 Shannon Entropy: H = log₂(R^L)
+//       - 4.3 Information Theory: Measuring password randomness
 //
-// 5️⃣ MÔN TOÁN TIN HỌC (Discrete Mathematics):
-//    ✅ Set Theory: Email domain = tập hợp các ký tự hợp lệ
-//    ✅ Logic: AND/OR operators trong validation rules
-//    ✅ Boolean Algebra: Kết hợp điều kiện (A ∧ B ∧ C)
+// 2️⃣ MÔN LÝ THUYẾT TÍNH TOÁN & AUTOMATA (LY THUYET TINH TOAN.pdf):
+//    📖 CHƯƠNG 3: REGULAR LANGUAGES & FINITE AUTOMATA
+//       - 3.1 DFA (Deterministic Finite Automaton): Email regex = DFA
+//       - 3.2 Pattern Matching: State transitions cho validation
+//       - 3.3 Regular Expressions: Formal definition và properties
+//       - Ví dụ: Email regex có ~10 states (START → LOCAL → @ → DOMAIN → . → TLD)
 //
-// 6️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
-//    ✅ Middleware Pattern: Express middleware chain
-//    ✅ Functional Programming: Pure functions, immutability
-//    ✅ Error Handling: Validation errors với status codes
+//    📖 CHƯƠNG 4: NON-REGULAR LANGUAGES & COMPLEXITY
+//       - 4.1 NFA with Backtracking: JavaScript regex engine
+//       - 4.2 ReDoS (Regex Denial of Service): O(2^n) complexity
+//       - 4.3 Safe Regex Design: Avoiding catastrophic backtracking
+//
+// 3️⃣ MÔN CẤU TRÚC DỮ LIỆU VÀ GIẢI THUẬT 1 (CAU TRUC DU LIEU 1.pdf):
+//    📖 CHƯƠNG 1: DANH SÁCH (LISTS) & STRING OPERATIONS
+//       - 1.3 String ADT: charAt(), substring(), indexOf()
+//       - 1.4 Time Complexity: O(n) cho string operations
+//       - Ví dụ: trim() phải scan toàn bộ string → O(n)
+//
+//    📖 CHƯƠNG 2: DYNAMIC ARRAYS
+//       - 2.1 Array Operations: push() - O(1) amortized
+//       - 2.2 Collecting Errors: Build error array during validation
+//
+//    📖 CHƯƠNG 3: SEARCHING ALGORITHMS
+//       - 3.1 Linear Search: Tìm ký tự đặc biệt trong password - O(n)
+//       - 3.2 Pattern Matching: String search algorithms
+//
+// 4️⃣ MÔN LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (LAP TRINH HUONG DOI TUONG.pdf):
+//    📖 CHƯƠNG 4: FUNCTIONAL PROGRAMMING CONCEPTS
+//       - 4.1 Higher-Order Functions: Function nhận function làm parameter
+//       - 4.2 Pure Functions: Input → Output, no side effects
+//       - 4.3 Immutability: Không thay đổi input data
+//       - Ví dụ: createValidator(validateFunc) → middleware
+//
+//    📖 CHƯƠNG 5: DESIGN PATTERNS
+//       - 5.1 Factory Pattern: createValidator() tạo middleware
+//       - 5.2 Strategy Pattern: Pluggable validation strategies
+//
+// 5️⃣ MÔN TOÁN TIN HỌC (DISCRETE MATHEMATICS):
+//    📖 CHƯƠNG 1: LOGIC & BOOLEAN ALGEBRA
+//       - 1.1 Boolean Operators: AND (∧), OR (∨), NOT (¬)
+//       - 1.2 Combining Conditions: (length >= 8) ∧ hasUpper ∧ hasLower
+//       - Ví dụ: Password validation = conjunction of 4 conditions
+//
+//    📖 CHƯƠNG 2: SET THEORY
+//       - 2.1 Set Membership: Character ∈ ValidSet
+//       - 2.2 Email Domain = Set of allowed characters [a-zA-Z0-9.-]
+//
+//    📖 CHƯƠNG 5: INFORMATION THEORY
+//       - 5.1 Entropy: Measure of randomness/unpredictability
+//       - 5.2 Shannon Entropy Formula: H = log₂(R^L)
+//       - Ví dụ: Password entropy calculation
+//
+// 6️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI (CONG NGHE LAP TRINH.pdf):
+//    📖 CHƯƠNG 4: WEB APPLICATION ARCHITECTURE
+//       - 4.1 Middleware Pattern: Express.js middleware chain
+//       - 4.2 Chain of Responsibility: Request flows through middlewares
+//       - 4.3 Separation of Concerns: Validation layer tách riêng
+//
+//    📖 CHƯƠNG 5: FUNCTIONAL PROGRAMMING IN JAVASCRIPT
+//       - 5.1 Higher-Order Functions & Closures
+//       - 5.2 Function Composition: Validate → Sanitize → Process
+//
+// 7️⃣ MÔN MẠNG MÁY TÍNH (MANG MAY TINH.pdf):
+//    📖 CHƯƠNG 4: APPLICATION LAYER - HTTP PROTOCOL
+//       - 4.2 HTTP Status Codes: 400 Bad Request, 422 Unprocessable Entity
+//       - 4.3 RFC 5321: Email format specification (max 254 chars)
 //
 // =============================================================================
 

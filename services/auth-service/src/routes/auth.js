@@ -1,29 +1,64 @@
 // =============================================================================
 // AUTH ROUTES - RESTFUL API ENDPOINTS
 // =============================================================================
-// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
+// 📚 ÁP DỤNG KIẾN THỨC TỪ ĐỀ CƯƠNG MÔN HỌC ĐẠI HỌC:
 //
-// 1️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
-//    ✅ RESTful API: Architectural style cho web services
-//    ✅ HTTP Methods: GET, POST, PUT, DELETE (CRUD)
-//    ✅ Status Codes: 200, 201, 400, 401, 403, 404, 500
-//    ✅ JSON API: Request/Response format
+// 1️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI (CONG NGHE LAP TRINH.pdf):
+//    📖 CHƯƠNG 4: RESTFUL API DESIGN
+//       - 4.1 REST Principles: Resource-based URLs, HTTP methods
+//       - 4.2 HTTP Methods & CRUD: POST=Create, GET=Read, PUT=Update, DELETE=Delete
+//       - 4.3 Resource Naming: /users, /auth/login (nouns, not verbs)
+//       - 4.4 Stateless: Each request self-contained with token
+//       - Ví dụ: POST /auth/register vs ❌ /registerUser
 //
-// 2️⃣ MÔN MẠNG MÁY TÍNH (Networking):
-//    ✅ HTTP Protocol: Request-response model
-//    ✅ Headers: Authorization, Content-Type
-//    ✅ Status Codes: 2xx success, 4xx client error, 5xx server error
-//    ✅ Client-Server Architecture
+//    📖 CHƯƠNG 5: JSON API STANDARDS
+//       - 5.1 Request Format: application/json content-type
+//       - 5.2 Response Structure: {success, data, error} pattern
+//       - 5.3 Error Responses: Consistent error format
 //
-// 3️⃣ MÔN AN TOÀN HỆ THỐNG:
-//    ✅ Authentication Flow: Login, logout, token management
-//    ✅ Authorization: Role-based access control
-//    ✅ Security Headers: CORS, Rate limiting
+// 2️⃣ MÔN MẠNG MÁY TÍNH (MANG MAY TINH.pdf):
+//    📖 CHƯƠNG 4: APPLICATION LAYER - HTTP PROTOCOL
+//       - 4.1 HTTP Request-Response: Client sends, server responds
+//       - 4.2 HTTP Status Codes:
+//         * 2xx Success: 200 OK, 201 Created, 204 No Content
+//         * 4xx Client Error: 400 Bad Request, 401 Unauthorized, 403 Forbidden, 404 Not Found, 409 Conflict
+//         * 5xx Server Error: 500 Internal Server Error
+//       - 4.3 HTTP Headers: Content-Type, Authorization
+//       - Ví dụ: 401 = không có token, 403 = có token nhưng không đủ quyền
 //
-// 4️⃣ MÔN KỸ THUẬT PHẦN MỀM:
-//    ✅ API Design: RESTful principles, resource naming
-//    ✅ Error Handling: Consistent error responses
-//    ✅ Middleware Pattern: Express routing
+//    📖 CHƯƠNG 3: CLIENT-SERVER ARCHITECTURE
+//       - 3.1 Request-Response Model: Synchronous communication
+//       - 3.2 Stateless Protocol: HTTP doesn't maintain state
+//
+// 3️⃣ MÔN AN TOÀN VÀ BẢO MẬT HỆ THỐNG (AN TOAN HE THONG.pdf):
+//    📖 CHƯƠNG 3: AUTHENTICATION & AUTHORIZATION
+//       - 3.1 Authentication (AuthN): Who are you? (Login)
+//       - 3.2 Authorization (AuthZ): What can you do? (Permissions)
+//       - 3.3 Authentication Flow:
+//         * Register → Hash password → Store in DB → Return token
+//         * Login → Verify password → Return token
+//         * Logout → Blacklist token
+//       - Ví dụ: AuthN = đăng nhập, AuthZ = admin vs user role
+//
+//    📖 CHƯƠNG 2: PASSWORD SECURITY
+//       - 2.1 Registration: Hash password before storing
+//       - 2.2 Login: Compare hashed passwords
+//
+// 4️⃣ MÔN KỸ THUẬT PHẦN MỀM (KY THUAT PHAN MEM.pdf):
+//    📖 CHƯƠNG 4: API DESIGN PRINCIPLES
+//       - 4.1 Consistency: Same pattern for all endpoints
+//       - 4.2 Error Handling: Predictable error responses
+//       - 4.3 Versioning: /v1/auth/login for future compatibility
+//
+//    📖 CHƯƠNG 5: DESIGN PATTERNS
+//       - 5.1 Middleware Pattern: validateRegister → controller
+//       - 5.2 Controller Pattern: Separate routing from business logic
+//       - 5.3 Error Handling Pattern: Try-catch in all routes
+//
+// 5️⃣ MÔN CẤU TRÚC DỮ LIỆU VÀ GIẢI THUẬT 1 (CAU TRUC DU LIEU 1.pdf):
+//    📖 CHƯƠNG 4: HASH TABLES & LOOKUPS
+//       - 4.1 Email Lookup: B-Tree index → O(log n)
+//       - Ví dụ: User.findByEmail() uses index
 //
 // =============================================================================
 
