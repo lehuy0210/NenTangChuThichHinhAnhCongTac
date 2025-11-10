@@ -4,22 +4,27 @@
 
 ### ✅ **PHASE 1: AUTHENTICATION SERVICE - 100% COMPLETE (2 VERSIONS)**
 
-#### **🔥 CẬP NHẬT MỚI NHẤT: CHAPTER-LEVEL MAPPINGS (2025-11-10)**
+#### **🔥 CẬP NHẬT MỚI NHẤT: ĐÃ THÊM MÔN ĐIỆN TOÁN ĐÁM MÂY (2025-11-10)**
+
+**🆕 MÔN THỨ 27: ĐIỆN TOÁN ĐÁM MÂY (Cloud Computing)**
+- ✅ 4/7 files có Cloud Computing mappings (database, server, auth, logger)
+- ✅ 20+ CHAPTER mappings: DBaaS, Microservices, Scalability, Observability
+- ✅ Real-world examples: AWS RDS, ElastiCache, CloudWatch, ELK Stack
 
 **2 BRANCHES ĐỂ SO SÁNH:**
 
 1️⃣ **VANILLA VERSION** (Branch: `claude/review-course-materials-011CUzHNXszY1BUcTuEDQZH6`)
    - ❌ Không dùng Winston → Custom vanilla logger (fs.appendFileSync)
    - ❌ Không dùng Joi → Custom validation functions
-   - ✅ 7 files với **50+ CHAPTER mappings** cụ thể
-   - ✅ ~4,200 dòng code + 1,600+ dòng educational comments
-   - Ví dụ: 📖 CHƯƠNG 2: Password Security, 📖 CHƯƠNG 5: B-Tree Indexing
+   - ✅ 7 files với **70+ CHAPTER mappings** từ **27 môn học**
+   - ✅ ~4,200 dòng code + 1,700+ dòng educational comments
+   - Ví dụ: 📖 CHƯƠNG 2: Password Security, 📖 CHƯƠNG 7: Cloud Observability
 
 2️⃣ **LIBRARY VERSION** (Branch: `claude/auth-library-version-011CUzHNXszY1BUcTuEDQZH6`)
    - ✅ Winston cho logging (async I/O, log rotation, transports)
    - ❌ Chưa dùng Joi (validation vẫn custom như Vanilla)
-   - ✅ 7 files với **50+ CHAPTER mappings** cụ thể (giống Vanilla)
-   - ✅ Production-ready với Winston library
+   - ✅ 7 files với **70+ CHAPTER mappings** từ **27 môn học** (giống Vanilla)
+   - ✅ Production-ready với Winston library + Cloud patterns
 
 **ĐIỂM KHÁC BIỆT CHÍNH:**
 | Aspect | Vanilla | Library |
@@ -36,9 +41,9 @@
 | Metric | Value |
 |--------|-------|
 | **Tổng số files auth-service** | 7 core files + CHUONG_TRINH_HOC.md |
-| **Tổng số dòng code** | ~3,500 dòng (không tính infrastructure) |
-| **Educational comments** | ~40% của code (1,400+ dòng giải thích) |
-| **Môn học kết nối** | **26 môn học đại học** |
+| **Tổng số dòng code** | ~4,300 dòng (bao gồm Cloud Computing comments) |
+| **Educational comments** | ~40% của code (1,700+ dòng giải thích) |
+| **Môn học kết nối** | **27 môn học đại học** (+ Điện Toán Đám Mây) |
 | **Services implemented** | 1/6 (Auth Service - 100% Vanilla) |
 | **Database tables** | 6 tables (PostgreSQL) |
 | **API endpoints** | 5 endpoints |
@@ -99,27 +104,28 @@ NenTangChuThichHinhAnhCongTac/
 
 **Lý do**: Sinh viên trung bình-khá dễ hiểu code vanilla hơn là đọc docs của 10 libraries!
 
-### 1. **🆕 KẾT NỐI 26 MÔN HỌC ĐẠI HỌC**
+### 1. **🆕 KẾT NỐI 27 MÔN HỌC ĐẠI HỌC**
 
 **File: `services/auth-service/CHUONG_TRINH_HOC.md`** (300 dòng)
 
 Master mapping document với:
 - ✅ **Per-file analysis**: Mỗi file kết nối đến bao nhiêu môn
-- ✅ **Top 10 courses**: Môn nào được áp dụng nhiều nhất
-- ✅ **Knowledge chains**: Security Stack, Database Stack, System Stack
+- ✅ **Top 11 courses**: Môn nào được áp dụng nhiều nhất
+- ✅ **Knowledge chains**: Security Stack, Database Stack, System Stack, **Cloud Stack**
 - ✅ **Learning paths**: Hướng dẫn học từng file theo trình tự
 
-**Top 10 Môn Học Được Áp Dụng**:
+**Top 11 Môn Học Được Áp Dụng**:
 1. **An Toàn và Bảo Mật** - 7/7 files (100%)
 2. **Cơ Sở Dữ Liệu** - 7/7 files (100%)
 3. **Mạng Máy Tính** - 7/7 files (100%)
 4. **CTDL & Giải Thuật** - 7/7 files (100%)
-5. **Toán Tin Học** - 5/7 files (71%)
+5. **Công Nghệ Hiện Đại** - 7/7 files (100%)
 6. **Kỹ Thuật Phần Mềm** - 6/7 files (86%)
-7. **Công Nghệ Hiện Đại** - 6/7 files (86%)
-8. **OOP** - 5/7 files (71%)
-9. **Hệ Điều Hành** - 4/7 files (57%)
-10. **Automata Theory** - 2/7 files (29%)
+7. **Toán Tin Học** - 6/7 files (86%)
+8. **OOP** - 6/7 files (86%)
+9. **🆕 Điện Toán Đám Mây** - 4/7 files (57%) - **MỚI THÊM!**
+10. **Hệ Điều Hành** - 5/7 files (71%)
+11. **Hệ Thống Phân Tán** - 4/7 files (57%)
 
 ### 2. **🆕 VÍ DỤ CỤ THỂ VỚI SỐ LIỆU THỰC TẾ**
 
