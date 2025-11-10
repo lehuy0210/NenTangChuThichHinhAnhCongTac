@@ -2,13 +2,32 @@
 
 ## 🎉 ĐÃ HOÀN THÀNH
 
-### ✅ **PHASE 1: AUTHENTICATION SERVICE - 100% COMPLETE (VANILLA VERSION)**
+### ✅ **PHASE 1: AUTHENTICATION SERVICE - 100% COMPLETE (2 VERSIONS)**
 
-**🔥 ĐẶC BIỆT: Toàn bộ 7 files được viết lại 100% Vanilla JavaScript**
-- ❌ Không dùng Winston → Custom vanilla logger
-- ❌ Không dùng Joi → Custom validation functions
-- ✅ **Kết nối comprehensive đến 26 môn học đại học**
-- ✅ **Educational comments chi tiết với ví dụ cụ thể**
+#### **🔥 CẬP NHẬT MỚI NHẤT: CHAPTER-LEVEL MAPPINGS (2025-11-10)**
+
+**2 BRANCHES ĐỂ SO SÁNH:**
+
+1️⃣ **VANILLA VERSION** (Branch: `claude/review-course-materials-011CUzHNXszY1BUcTuEDQZH6`)
+   - ❌ Không dùng Winston → Custom vanilla logger (fs.appendFileSync)
+   - ❌ Không dùng Joi → Custom validation functions
+   - ✅ 7 files với **50+ CHAPTER mappings** cụ thể
+   - ✅ ~4,200 dòng code + 1,600+ dòng educational comments
+   - Ví dụ: 📖 CHƯƠNG 2: Password Security, 📖 CHƯƠNG 5: B-Tree Indexing
+
+2️⃣ **LIBRARY VERSION** (Branch: `claude/auth-library-version-011CUzHNXszY1BUcTuEDQZH6`)
+   - ✅ Winston cho logging (async I/O, log rotation, transports)
+   - ❌ Chưa dùng Joi (validation vẫn custom như Vanilla)
+   - ✅ 7 files với **50+ CHAPTER mappings** cụ thể (giống Vanilla)
+   - ✅ Production-ready với Winston library
+
+**ĐIỂM KHÁC BIỆT CHÍNH:**
+| Aspect | Vanilla | Library |
+|--------|---------|---------|
+| **logger.js** | 391 dòng, fs.appendFileSync (sync I/O) | 402 dòng, Winston transports (async I/O) |
+| **validation.js** | Custom functions, Automata theory | Tương tự Vanilla (chưa Joi) |
+| **Logging** | Blocking writes | Non-blocking with rotation |
+| **Production** | Educational | Production-ready |
 
 ---
 
