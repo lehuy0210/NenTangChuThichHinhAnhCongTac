@@ -1,47 +1,87 @@
 // =============================================================================
 // USER MODEL - SEQUELIZE ORM + BCRYPT HASHING
 // =============================================================================
-// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
+// 📚 ÁP DỤNG KIẾN THỨC TỪ ĐỀ CƯƠNG MÔN HỌC ĐẠI HỌC:
 //
-// 1️⃣ MÔN LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (OOP):
-//    ✅ Class & Object: User là class, mỗi user là object/instance
-//    ✅ Encapsulation: Dữ liệu + methods gom trong 1 class
-//    ✅ Instance Methods: validatePassword(), toJSON()
-//    ✅ Static Methods (Class Methods): findByEmail(), findActive()
-//    ✅ Prototype: JavaScript prototype chain
+// 1️⃣ MÔN LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (LAP TRINH HUONG DOI TUONG.pdf):
+//    📖 CHƯƠNG 1: CLASSES & OBJECTS
+//       - 1.1 Class Definition: User là class blueprint
+//       - 1.2 Object Instantiation: Mỗi user = instance của class
+//       - 1.3 Encapsulation: Data + methods trong một unit
+//       - Ví dụ: const user = new User() → creates instance
 //
-// 2️⃣ MÔN CƠ SỞ DỮ LIỆU (Database):
-//    ✅ Schema Design: Định nghĩa cấu trúc bảng users
-//    ✅ Primary Key: id (UUID) - khóa chính
-//    ✅ Unique Constraint: email phải unique
-//    ✅ Data Types: UUID, STRING, BOOLEAN, DATE
-//    ✅ Indexes: email (unique) tự động có B-Tree index
-//    ✅ Soft Delete: isActive thay vì DELETE thật
+//    📖 CHƯƠNG 2: METHODS & PROPERTIES
+//       - 2.1 Instance Methods: validatePassword(), toJSON()
+//       - 2.2 Static Methods (Class Methods): findByEmail(), findActive()
+//       - 2.3 Prototype Chain: JavaScript prototype inheritance
 //
-// 3️⃣ MÔN AN TOÀN HỆ THỐNG (Security):
-//    ✅ Password Hashing: Bcrypt (Blowfish cipher)
-//    ✅ Salt: Random string thêm vào password trước khi hash
-//    ✅ Rainbow Table Attack: Salt ngăn chặn rainbow tables
-//    ✅ Cost Factor: Bcrypt rounds (10 = 2^10 = 1024 iterations)
-//    ✅ Timing Attack: bcrypt.compare() constant-time comparison
+//    📖 CHƯƠNG 6: ORM (OBJECT-RELATIONAL MAPPING)
+//       - 6.1 Active Record Pattern: Model = Data + Behavior
+//       - 6.2 Lifecycle Hooks: beforeCreate, beforeUpdate, beforeValidate
 //
-// 4️⃣ MÔN CẤU TRÚC DỮ LIỆU & GIẢI THUẬT:
-//    ✅ Hash Table: Email lookup sử dụng hash table - O(1)
-//    ✅ UUID: Collision-free identifier (128-bit)
-//    ✅ String Operations: toLowerCase(), trim() - O(n)
-//    ✅ Time Complexity: Hash operations, array operations
+// 2️⃣ MÔN CƠ SỞ DỮ LIỆU (CO SO DU LIEU.pdf):
+//    📖 CHƯƠNG 3: SCHEMA DESIGN & CONSTRAINTS
+//       - 3.1 Primary Key: id (UUID) - unique identifier
+//       - 3.2 Unique Constraint: email phải unique trong bảng
+//       - 3.3 Foreign Keys: Relationships với bảng khác
+//       - 3.4 Data Types: UUID, VARCHAR, BOOLEAN, TIMESTAMP
 //
-// 5️⃣ MÔN TOÁN TIN HỌC (Discrete Math):
-//    ✅ Hash Functions: One-way functions, collision resistance
-//    ✅ Set Theory: Unique constraint = email ∈ Set (no duplicates)
-//    ✅ Probability: UUID collision probability ≈ 0
-//    ✅ Cryptography: Bcrypt as cryptographic hash function
+//    📖 CHƯƠNG 5: INDEXING & OPTIMIZATION
+//       - 5.1 B-Tree Index: Email unique constraint tạo B-Tree index
+//       - 5.2 Index Lookup: O(log n) với 1M users → 20 comparisons
+//       - 5.3 Query Optimization: SELECT WHERE email = ? uses index
 //
-// 6️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
-//    ✅ ORM Pattern: Object-Relational Mapping (Sequelize)
-//    ✅ Active Record Pattern: Model = Data + Behavior
-//    ✅ Lifecycle Hooks: beforeCreate, beforeUpdate callbacks
-//    ✅ Promise/Async-Await: Asynchronous database operations
+//    📖 CHƯƠNG 6: DATA INTEGRITY
+//       - 6.1 Soft Delete: isActive = false thay vì DELETE
+//       - 6.2 Audit Trail: created_at, updated_at timestamps
+//
+// 3️⃣ MÔN AN TOÀN VÀ BẢO MẬT HỆ THỐNG (AN TOAN HE THONG.pdf):
+//    📖 CHƯƠNG 2: PASSWORD SECURITY
+//       - 2.1 Password Hashing: Bcrypt (Blowfish cipher algorithm)
+//       - 2.2 Salt Generation: Random 128-bit salt per password
+//       - 2.3 Cost Factor: bcrypt rounds (10 = 2^10 = 1,024 iterations)
+//       - 2.4 Rainbow Table Defense: Salt makes rainbow tables useless
+//       - Ví dụ: Cost 10 = 1024 rounds, Cost 12 = 4096 rounds (4x slower)
+//
+//    📖 CHƯƠNG 3: CRYPTOGRAPHIC ATTACKS
+//       - 3.1 Brute Force: Cost factor increases computation time
+//       - 3.2 Timing Attacks: bcrypt.compare() constant-time comparison
+//       - 3.3 Dictionary Attacks: Salt prevents precomputed hashes
+//
+// 4️⃣ MÔN CẤU TRÚC DỮ LIỆU VÀ GIẢI THUẬT 1 (CAU TRUC DU LIEU 1.pdf):
+//    📖 CHƯƠNG 4: HASH TABLES
+//       - 4.1 Hash Function: Email → hash → index in B-Tree
+//       - 4.2 Collision Handling: Unique constraint prevents collisions
+//       - 4.3 Time Complexity: O(1) average for hash lookup
+//
+//    📖 CHƯƠNG 1: STRINGS
+//       - 1.3 String Operations: toLowerCase(), trim() - O(n)
+//       - 1.4 String Comparison: Email equality checking
+//
+// 5️⃣ MÔN TOÁN TIN HỌC (DISCRETE MATHEMATICS):
+//    📖 CHƯƠNG 3: HASH FUNCTIONS & ONE-WAY FUNCTIONS
+//       - 3.1 Cryptographic Hash: Cannot reverse bcrypt hash
+//       - 3.2 Collision Resistance: Different passwords → different hashes
+//       - 3.3 Deterministic: Same input → same hash
+//
+//    📖 CHƯƠNG 4: PROBABILITY THEORY
+//       - 4.1 UUID Collision: P(collision) ≈ n²/(2 * 2^122) ≈ 10^-15
+//       - 4.2 Birthday Paradox: Collision probability formula
+//       - Ví dụ: 1 billion UUIDs → collision probability ≈ 10^-15
+//
+//    📖 CHƯƠNG 2: SET THEORY
+//       - 2.1 Unique Constraint: Emails ∈ Set (no duplicates allowed)
+//       - 2.2 Set Membership: email ∈ UniqueEmailSet?
+//
+// 6️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI (CONG NGHE LAP TRINH.pdf):
+//    📖 CHƯƠNG 3: ASYNCHRONOUS PROGRAMMING
+//       - 3.1 Promises: Database operations return promises
+//       - 3.2 Async/Await: Modern async syntax
+//       - 3.3 Non-blocking I/O: Node.js event loop
+//
+//    📖 CHƯƠNG 6: ORM & DATABASE ABSTRACTION
+//       - 6.1 Sequelize ORM: Maps objects to database tables
+//       - 6.2 Query Builder: Abstract SQL queries
 //
 // =============================================================================
 

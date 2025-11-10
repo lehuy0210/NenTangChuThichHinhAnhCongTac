@@ -1,38 +1,91 @@
 // =============================================================================
 // MAIN SERVER - EXPRESS APP & MIDDLEWARE STACK
 // =============================================================================
-// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
+// 📚 ÁP DỤNG KIẾN THỨC TỪ ĐỀ CƯƠNG MÔN HỌC ĐẠI HỌC:
 //
-// 1️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
-//    ✅ Express.js: Web framework for Node.js
-//    ✅ Middleware Pattern: Chain of handlers
-//    ✅ REST API: Stateless HTTP endpoints
-//    ✅ Environment Config: 12-Factor App principles
+// 1️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI (CONG NGHE LAP TRINH.pdf):
+//    📖 CHƯƠNG 4: WEB FRAMEWORKS & EXPRESS.JS
+//       - 4.1 Express.js: Minimalist web framework for Node.js
+//       - 4.2 Middleware Pattern: Request → MW1 → MW2 → ... → Response
+//       - 4.3 Routing: Define endpoints với HTTP methods
+//       - 4.4 Chain of Responsibility: Middleware chain pattern
 //
-// 2️⃣ MÔN MẠNG MÁY TÍNH:
-//    ✅ HTTP Server: TCP socket listening
-//    ✅ CORS: Cross-Origin Resource Sharing
-//    ✅ Client-Server Model: Request-response cycle
+//    📖 CHƯƠNG 5: MICROSERVICES ARCHITECTURE
+//       - 5.1 12-Factor App: Environment-based configuration
+//       - 5.2 Stateless Services: No server-side session storage
+//       - 5.3 Service Independence: Auth service tách biệt
 //
-// 3️⃣ MÔN AN TOÀN HỆ THỐNG:
-//    ✅ Helmet: Security headers (XSS, clickjacking)
-//    ✅ Rate Limiting: DDoS protection, brute-force prevention
-//    ✅ CORS Policy: Control allowed origins
+// 2️⃣ MÔN MẠNG MÁY TÍNH (MANG MAY TINH.pdf):
+//    📖 CHƯƠNG 4: APPLICATION LAYER - HTTP SERVER
+//       - 4.1 HTTP Server: Listening on TCP port (default 3001)
+//       - 4.2 Request-Response Cycle: Synchronous communication
+//       - 4.3 HTTP Headers: Authorization, Content-Type, CORS headers
 //
-// 4️⃣ MÔN HỆ ĐIỀU HÀNH:
-//    ✅ Process Signals: SIGTERM, SIGINT handling
-//    ✅ Graceful Shutdown: Clean resource cleanup
-//    ✅ Environment Variables: process.env
+//    📖 CHƯƠNG 5: TRANSPORT LAYER - TCP
+//       - 5.1 TCP Socket: app.listen() creates TCP server
+//       - 5.2 Port Binding: Bind to port 3001 (or env PORT)
+//       - 5.3 Connection Handling: TCP 3-way handshake
 //
-// 5️⃣ MÔN CẤU TRÚC DỮ LIỆU:
-//    ✅ Sliding Window: Rate limit algorithm
-//    ✅ Queue: Request queue in middleware chain
-//    ✅ Hash Map: In-memory rate limit storage
+//    📖 CHƯƠNG 6: CORS (CROSS-ORIGIN RESOURCE SHARING)
+//       - 6.1 Same-Origin Policy: Browser security mechanism
+//       - 6.2 Origin: protocol + domain + port
+//       - 6.3 Preflight Request: OPTIONS request cho non-simple requests
+//       - Ví dụ: Frontend (localhost:3000) → Backend (localhost:3001) needs CORS
 //
-// 6️⃣ MÔN KỸ THUẬT PHẦN MỀM:
-//    ✅ Design Patterns: Middleware, Chain of Responsibility
-//    ✅ Separation of Concerns: Routes, middleware, config
-//    ✅ Error Handling: Centralized error handler
+// 3️⃣ MÔN AN TOÀN VÀ BẢO MẬT HỆ THỐNG (AN TOAN HE THONG.pdf):
+//    📖 CHƯƠNG 3: WEB SECURITY HEADERS
+//       - 3.1 Helmet Middleware: Sets 8 security headers
+//         * X-Frame-Options: DENY → chống clickjacking
+//         * X-Content-Type-Options: nosniff → chống MIME sniffing
+//         * Strict-Transport-Security → force HTTPS (HSTS)
+//         * X-XSS-Protection → enable browser XSS filter
+//       - Ví dụ: Clickjacking = attacker embeds site in iframe
+//
+//    📖 CHƯƠNG 4: RATE LIMITING & DDOS PROTECTION
+//       - 4.1 Rate Limit Algorithms:
+//         * Fixed Window: 100 req/15min (simple, có burst problem)
+//         * Sliding Window: Rolling time window (smoother)
+//         * Token Bucket: Tokens refill at constant rate
+//         * Leaky Bucket: Requests leak at constant rate
+//       - 4.2 DDoS Protection: Limit requests per IP
+//       - 4.3 Brute Force Prevention: Limit login attempts
+//       - Ví dụ: 100 requests/15min → attacker chỉ thử 100 passwords
+//
+// 4️⃣ MÔN HỆ ĐIỀU HÀNH (HE DIEU HANH.pdf):
+//    📖 CHƯƠNG 2: PROCESS MANAGEMENT & SIGNALS
+//       - 2.1 Process Signals: SIGTERM, SIGINT, SIGHUP
+//       - 2.2 Signal Handlers: process.on('SIGTERM', handler)
+//       - 2.3 Graceful Shutdown: Close connections before exit
+//       - Ví dụ: Ctrl+C sends SIGINT → cleanup → process.exit(0)
+//
+//    📖 CHƯƠNG 3: ENVIRONMENT VARIABLES
+//       - 3.1 process.env: Environment variable access
+//       - 3.2 Configuration: PORT, NODE_ENV, DB_HOST
+//       - 3.3 Security: Don't hardcode secrets in code
+//
+// 5️⃣ MÔN CẤU TRÚC DỮ LIỆU VÀ GIẢI THUẬT 1 (CAU TRUC DU LIEU 1.pdf):
+//    📖 CHƯƠNG 2: QUEUES & FIFO
+//       - 2.1 Middleware Stack: FIFO queue structure
+//       - 2.2 Request Queue: Requests processed in order
+//       - Ví dụ: MW1 → MW2 → MW3 (first in, first processed)
+//
+//    📖 CHƯƠNG 4: HASH TABLES
+//       - 4.1 Rate Limit Storage: In-memory hash map (IP → count)
+//       - 4.2 O(1) Lookup: Check rate limit by IP
+//
+//    📖 CHƯƠNG 7: SLIDING WINDOW ALGORITHM
+//       - 7.1 Time Windows: Track requests in rolling time window
+//       - 7.2 Algorithm: Count requests trong last N minutes
+//
+// 6️⃣ MÔN KỸ THUẬT PHẦN MỀM (KY THUAT PHAN MEM.pdf):
+//    📖 CHƯƠNG 5: DESIGN PATTERNS
+//       - 5.1 Middleware Pattern: Pluggable request handlers
+//       - 5.2 Chain of Responsibility: Pass request through chain
+//       - 5.3 Error Handler Pattern: Centralized error handling
+//
+//    📖 CHƯƠNG 3: SEPARATION OF CONCERNS
+//       - 3.1 Layered Architecture: Routes / Middleware / Config
+//       - 3.2 Modularity: Each module has single responsibility
 //
 // =============================================================================
 

@@ -1,43 +1,75 @@
 // =============================================================================
 // AUTHENTICATION MIDDLEWARE - JWT + REDIS BLACKLIST
 // =============================================================================
-// 📚 LIÊN HỆ VỚI ĐỀ CƯƠNG CÁC MÔN HỌC:
+// 📚 ÁP DỤNG KIẾN THỨC TỪ ĐỀ CƯƠNG MÔN HỌC ĐẠI HỌC:
 //
-// 1️⃣ MÔN AN TOÀN HỆ THỐNG (Security):
-//    ✅ JWT: JSON Web Token - stateless authentication
-//    ✅ HMAC: Hash-based Message Authentication Code
-//    ✅ Token Blacklist: Revoke tokens khi logout
-//    ✅ Signature Verification: Chống giả mạo token
-//    ✅ Expiration: Token tự động hết hạn
+// 1️⃣ MÔN AN TOÀN VÀ BẢO MẬT HỆ THỐNG (AN TOAN HE THONG.pdf):
+//    📖 CHƯƠNG 3: AUTHENTICATION & AUTHORIZATION
+//       - 3.1 JWT (JSON Web Token): Stateless authentication mechanism
+//       - 3.2 Token-based Auth: Không cần server-side session
+//       - 3.3 Token Revocation: Blacklist để revoke tokens
+//       - 3.4 Token Expiration: Tokens tự động hết hạn (exp claim)
 //
-// 2️⃣ MÔN MẠNG MÁY TÍNH (Networking):
-//    ✅ HTTP Headers: Authorization header, Bearer scheme
-//    ✅ Client-Server Auth: Stateless authentication flow
-//    ✅ Session vs Token: Session-based vs Token-based auth
-//    ✅ TCP Connection: Redis connection (persistent TCP)
+//    📖 CHƯƠNG 4: CRYPTOGRAPHY & DIGITAL SIGNATURES
+//       - 4.1 HMAC (Hash-based Message Authentication Code)
+//       - 4.2 HMAC-SHA256: HMAC(K, m) = H((K' ⊕ opad) || H((K' ⊕ ipad) || m))
+//       - 4.3 Digital Signature: signature = HMAC(header.payload, secret)
+//       - 4.4 Signature Verification: Chống giả mạo và tampering
+//       - Ví dụ: Attacker sửa payload → signature không match → reject
 //
-// 3️⃣ MÔN TOÁN TIN HỌC (Discrete Math):
-//    ✅ HMAC SHA-256: Cryptographic hash function
-//    ✅ Base64 Encoding: Binary -> ASCII conversion
-//    ✅ Digital Signature: Signature = HMAC(Header.Payload, Secret)
-//    ✅ One-Way Function: Cannot reverse HMAC
+// 2️⃣ MÔN MẠNG MÁY TÍNH (MANG MAY TINH.pdf):
+//    📖 CHƯƠNG 4: APPLICATION LAYER - HTTP PROTOCOL
+//       - 4.1 HTTP Headers: Authorization, Content-Type, Accept
+//       - 4.2 Bearer Token Scheme: Authorization: Bearer <token>
+//       - 4.3 Client-Server Model: Stateless request-response
+//       - 4.4 HTTP Status Codes: 401 Unauthorized, 403 Forbidden
 //
-// 4️⃣ MÔN CẤU TRÚC DỮ LIỆU & GIẢI THUẬT:
-//    ✅ Hash Table: Redis key-value store - O(1)
-//    ✅ String Operations: Base64 encode/decode
-//    ✅ Time Complexity: Token verification - O(1)
-//    ✅ TTL: Time To Live in Redis
+//    📖 CHƯƠNG 5: TRANSPORT LAYER - TCP
+//       - 5.1 Persistent Connections: Redis TCP connection pooling
+//       - 5.2 Connection Management: Keep-alive vs new connections
 //
-// 5️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI:
-//    ✅ Middleware Pattern: Express middleware chain
-//    ✅ Stateless Authentication: No server-side sessions
-//    ✅ Bearer Token: OAuth 2.0 Bearer token scheme
-//    ✅ Async/Await: Asynchronous Redis operations
+// 3️⃣ MÔN TOÁN TIN HỌC (DISCRETE MATHEMATICS):
+//    📖 CHƯƠNG 3: HASH FUNCTIONS & CRYPTOGRAPHY
+//       - 3.1 HMAC Formula: Keyed-hash message authentication
+//       - 3.2 SHA-256: 256-bit (32-byte) hash output
+//       - 3.3 One-Way Function: Cannot reverse HMAC(m) to get m
+//       - 3.4 Collision Resistance: Hard to find m1, m2 where H(m1) = H(m2)
 //
-// 6️⃣ MÔN LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (OOP):
-//    ✅ Higher-Order Functions: requireRole() returns middleware
-//    ✅ Closure: Middleware captures allowedRoles
-//    ✅ Factory Pattern: createValidator pattern
+//    📖 CHƯƠNG 5: ENCODING & REPRESENTATION
+//       - 5.1 Base64URL Encoding: Binary → ASCII text (URL-safe)
+//       - 5.2 Encoding Process: 3 bytes → 4 base64 characters
+//       - Ví dụ: "JWT" → binary → 6-bit groups → "SldU"
+//
+// 4️⃣ MÔN CẤU TRÚC DỮ LIỆU VÀ GIẢI THUẬT 1 (CAU TRUC DU LIEU 1.pdf):
+//    📖 CHƯƠNG 4: HASH TABLES
+//       - 4.1 Redis Key-Value Store: Distributed hash table
+//       - 4.2 Time Complexity: GET/SET operations - O(1)
+//       - 4.3 TTL (Time To Live): Automatic key expiration
+//       - Ví dụ: blacklist:token → SET with TTL 24h → auto delete
+//
+//    📖 CHƯƠNG 1: STRINGS & STRING OPERATIONS
+//       - 1.3 String Parsing: Splitting "Bearer <token>"
+//       - 1.4 Base64 Encode/Decode: O(n) với n = string length
+//
+// 5️⃣ MÔN CÔNG NGHỆ LẬP TRÌNH HIỆN ĐẠI (CONG NGHE LAP TRINH.pdf):
+//    📖 CHƯƠNG 4: MIDDLEWARE PATTERN
+//       - 4.1 Express Middleware Chain: req → MW1 → MW2 → controller
+//       - 4.2 Authentication Middleware: Verify token before routes
+//       - 4.3 Authorization Middleware: Check permissions/roles
+//
+//    📖 CHƯƠNG 5: STATELESS ARCHITECTURE
+//       - 5.1 Stateless Auth: No server-side sessions
+//       - 5.2 Scalability: Horizontal scaling with stateless tokens
+//       - 5.3 OAuth 2.0: Bearer token standard (RFC 6750)
+//
+// 6️⃣ MÔN LẬP TRÌNH HƯỚNG ĐỐI TƯỢNG (LAP TRINH HUONG DOI TUONG.pdf):
+//    📖 CHƯƠNG 4: HIGHER-ORDER FUNCTIONS
+//       - 4.1 HOF: requireRole(roles) returns middleware function
+//       - 4.2 Closure: Returned function "remembers" allowedRoles
+//       - Ví dụ: const adminOnly = requireRole(['admin'])
+//
+//    📖 CHƯƠNG 5: FACTORY PATTERN
+//       - 5.1 Middleware Factory: Creating reusable middleware
 //
 // =============================================================================
 
