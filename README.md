@@ -179,28 +179,36 @@ npm run test:e2e
 
 ## 🎓 Liên Hệ Với Chương Trình Đào Tạo
 
-### **Authentication Service - Kết Nối 26 Môn Học Đại Học**
+### **🆕 CẬP NHẬT: Authentication Service - Mapping Chi Tiết Đến CHƯƠNG Của Từng Môn Học**
 
-Toàn bộ 7 files trong auth-service được viết lại **100% Vanilla JavaScript** với giải thích chi tiết kết nối đến **26 môn học** trong chương trình đào tạo:
+Toàn bộ 7 files trong auth-service được viết lại **100% Vanilla JavaScript** với giải thích chi tiết kết nối đến **CHƯƠNG cụ thể** của **26 môn học** trong chương trình đào tạo theo đề cương trường Đại học:
+
+**Nguồn đề cương**: [TaiLieuHocTheoDeCuongMonHocTruongDaiHoc](https://github.com/lehuy0210/TaiLieuHocTheoDeCuongMonHocTruongDaiHoc)
 
 #### 📊 **Top 10 Môn Học Được Áp Dụng Nhiều Nhất**:
 
+**🎯 ĐẶC BIỆT**: Mỗi file code giờ đây có comment mapping CỤ THỂ đến **CHƯƠNG** của môn học!
+
 1. **An Toàn và Bảo Mật Hệ Thống** - 7/7 files (100%)
+   - 📖 CHƯƠNG 1-5: Password Security, Cryptography, Web Attacks
    - Bcrypt internals: Cost 10 = 2^10 = 1024 iterations
    - JWT structure: HMAC-SHA256 signature verification
    - 7 attack types: SQL Injection, XSS, CSRF, SSRF, ReDoS, etc.
 
 2. **Cơ Sở Dữ Liệu** - 7/7 files (100%)
+   - 📖 CHƯƠNG 3: Normalization, CHƯƠNG 5: B-Tree Indexing
    - B-Tree index: 1M records → 20 comparisons vs 1M without index
    - Connection pool: 65ms → 7ms optimization
    - ACID transactions, Soft delete pattern
 
 3. **Mạng Máy Tính** - 7/7 files (100%)
+   - 📖 CHƯƠNG 4: Application Layer (HTTP, DNS), CHƯƠNG 5: Transport Layer (TCP)
    - HTTP protocol, RESTful API, Status codes
    - TCP socket, Client-server architecture
    - CORS, Security headers
 
-4. **Cấu Trúc Dữ Liệu & Giải Thuật** - 7/7 files (100%)
+4. **Cấu Trúc Dữ Liệu & Giải Thuật 1** - 7/7 files (100%)
+   - 📖 CHƯƠNG 1: Lists, CHƯƠNG 2: Sorting, CHƯƠNG 4: Hash Tables
    - Hash table O(1) Redis operations
    - 5 rate limiting algorithms: Fixed Window, Sliding Window, Token Bucket, Leaky Bucket
    - Base64URL encoding process

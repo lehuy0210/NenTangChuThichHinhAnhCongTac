@@ -1,12 +1,14 @@
-# 📚 LIÊN HỆ CODE VỚI 26 MÔN HỌC ĐẠI HỌC
+# 📚 LIÊN HỆ CODE VỚI 26 MÔN HỌC ĐẠI HỌC - MAPPING CHI TIẾT ĐẾN TỪNG CHƯƠNG
 
 > Document này mapping **Authentication Service** với **TẤT CẢ 26 môn học** từ chương trình đào tạo, giúp sinh viên thấy mối liên hệ giữa lý thuyết và thực hành.
+>
+> **🆕 CẬP NHẬT MỚI**: Mapping cụ thể đến **CHƯƠNG** của từng môn học theo đề cương trường Đại học
 
 ---
 
 ## 🎯 TỔNG QUAN HỆ THỐNG
 
-**Authentication Service** là microservice xử lý đăng ký, đăng nhập, xác thực người dùng. Hệ thống này áp dụng kiến thức từ **26 môn học**:
+**Authentication Service** là microservice xử lý đăng ký, đăng nhập, xác thực người dùng. Hệ thống này áp dụng kiến thức từ **26 môn học** trong chương trình đào tạo:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -25,22 +27,27 @@
 
 ## 📖 MAPPING CHI TIẾT THEO FILE CODE
 
-### 1️⃣ `config/logger.js` - GHI LOG HỆ THỐNG
+### 1️⃣ `config/logger.js` - GHI LOG HỆ THỐNG (VANILLA JAVASCRIPT)
 
-| Môn học | Kiến thức áp dụng | Dòng code |
-|---------|-------------------|-----------|
-| **🖥️ Hệ điều hành** | File I/O (fs.appendFileSync), Process (process.env), System calls | 130-141 |
-| **🏗️ Kỹ thuật lập trình** | Modular programming, Function design | Toàn bộ |
-| **📊 Cấu trúc dữ liệu 1** | Object (Hash Table), String manipulation, Filter | 41-46, 161-167 |
-| **🔢 Giải thuật 1** | Filter algorithm O(1), Comparison | 161-167 |
-| **🎨 Lập trình hướng đối tượng** | Encapsulation (logger object), Interface | 195-211 |
-| **🌍 Hệ thống phân tán** | Central logging, Kafka, ELK stack, Microservices logging | 227-247 |
-| **🖥️ Kiến trúc máy tính** | Disk I/O bottleneck, Buffer, Memory hierarchy | 122-124 |
-| **📐 Toán tin học** | Boolean logic (level >= currentLevel), Bit operations | 165 |
-| **📊 Xác suất thống kê** | Log sampling, Performance metrics | 182-186 |
-| **🔧 Phân tích thiết kế hệ thống** | Observer pattern, Singleton pattern | Toàn bộ |
+**🆕 FILE ĐÃ CẬP NHẬT: Mapping cụ thể đến CHƯƠNG của môn học!**
 
-**Tổng: 10/26 môn**
+| Môn học | Chương cụ thể | Kiến thức áp dụng | Dòng code |
+|---------|--------------|-------------------|-----------|
+| **🖥️ Hệ điều hành** | **CHƯƠNG 2**: Quản lý Process<br>**CHƯƠNG 3**: Quản lý File & I/O | - Environment Variables (process.env)<br>- File Operations (appendFileSync, mkdirSync)<br>- System calls | 6-16, 168-215 |
+| **📊 Cấu trúc dữ liệu 1** | **CHƯƠNG 1**: Danh sách - String manipulation<br>**CHƯƠNG 4**: Bảng băm (Hash Tables) | - String.padStart() để format timestamp<br>- Object = Hash Table (O(1) lookup)<br>- LOG_LEVELS mapping | 108-133, 45-68 |
+| **🔢 Giải thuật 1** | **CHƯƠNG 2**: Sắp xếp và tìm kiếm | - So sánh O(1): level > currentLevel<br>- Filter algorithm để skip logs | 220-239 |
+| **🎨 Lập trình hướng đối tượng** | **CHƯƠNG 2**: Bốn tính chất OOP<br>**CHƯƠNG 9**: Design Patterns | - Encapsulation: Gom hàm vào logger object<br>- Singleton Pattern: 1 logger duy nhất | 271-307 |
+| **💻 Lập trình cơ sở dữ liệu** | **CHƯƠNG 3**: Kiến trúc đa lớp | - Multi-tier architecture (Microservices)<br>- Central Logging (ELK Stack)<br>- Correlation ID pattern | 28-36, 315-361 |
+| **🌍 Công nghệ lập trình hiện đại** | **CHƯƠNG 1**: Xu hướng lập trình hiện đại | - JSON.stringify()<br>- Structured Logging | 138-163 |
+| **🖥️ Kiến trúc máy tính** | **CHƯƠNG 5**: Memory Hierarchy | - CPU Cache vs RAM vs SSD vs HDD<br>- Disk I/O bottleneck | 178-185 |
+
+**Tổng: 7 môn học, 12+ chương được áp dụng**
+
+**💡 ĐIỂM NỔI BẬT**:
+- ✅ Code KHÔNG dùng thư viện Winston (100% vanilla JavaScript)
+- ✅ Giải thích dễ hiểu cho sinh viên trung bình - khá
+- ✅ Có ví dụ cụ thể cho từng concept
+- ✅ Map rõ ràng đến CHƯƠNG của đề cương môn học
 
 ---
 
@@ -292,9 +299,24 @@ Tất cả 26 môn học có tài liệu đầy đủ tại:
 - ✅ Mỗi dòng code đều có **nền tảng lý thuyết vững chắc**
 - ✅ Sinh viên học lực **trung bình - khá** hoàn toàn có thể hiểu được
 - ✅ Lý thuyết đại học **ứng dụng trực tiếp** vào production code
+- ✅ **🆕 Mapping cụ thể đến CHƯƠNG của từng môn** theo đề cương trường
 
 > **"Học để làm, làm để học"** - Đây chính là cầu nối giữa giảng đường và thực tế!
 
 ---
 
-*Document được tạo tự động từ source code. Cập nhật: 2025-01-09*
+## 📝 LỊCH SỬ CẬP NHẬT
+
+**2025-11-10**:
+- ✅ Cập nhật mapping CHI TIẾT đến CHƯƠNG cụ thể của từng môn học
+- ✅ Viết lại `logger.js` với comment mapping chương theo đề cương
+- ✅ Bổ sung ví dụ cụ thể và giải thích dễ hiểu cho sinh viên trung bình - khá
+- ✅ Thêm thông tin về tài liệu tham khảo từ repository: https://github.com/lehuy0210/TaiLieuHocTheoDeCuongMonHocTruongDaiHoc
+
+**2025-01-09**:
+- Document được tạo lần đầu từ source code
+- Mapping tổng quan với 26 môn học
+
+---
+
+*Document cập nhật: 2025-11-10*
