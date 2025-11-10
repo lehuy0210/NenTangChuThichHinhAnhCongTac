@@ -179,11 +179,27 @@ npm run test:e2e
 
 ## 🎓 Liên Hệ Với Chương Trình Đào Tạo
 
-### **🆕 CẬP NHẬT: Authentication Service - Mapping Chi Tiết Đến CHƯƠNG Của Từng Môn Học**
+### **🆕 CẬP NHẬT: Authentication Service - 2 VERSIONS với Mapping CHƯƠNG**
 
-Toàn bộ 7 files trong auth-service được viết lại **100% Vanilla JavaScript** với giải thích chi tiết kết nối đến **CHƯƠNG cụ thể** của **26 môn học** trong chương trình đào tạo theo đề cương trường Đại học:
+**🔥 ĐẶC BIỆT: Project có 2 BRANCHES để so sánh:**
+
+#### **1️⃣ VANILLA VERSION** (Branch: `claude/review-course-materials-...`)
+- ✅ **100% Vanilla JavaScript** - KHÔNG dùng Winston, Joi
+- ✅ Code từ đầu để hiểu principle
+- ✅ `logger.js`: 391 dòng với fs.appendFileSync()
+- ✅ `validation.js`: Custom validation functions với regex
+- ✅ Phù hợp: Học tập, hiểu cách hoạt động bên trong
+
+#### **2️⃣ LIBRARY VERSION** (Branch: `claude/auth-library-version-...`)
+- ✅ **Production-ready** với Winston, Joi libraries
+- ✅ Async I/O, log rotation, schema validation
+- ✅ `logger.js`: 402 dòng với Winston transports
+- ✅ `validation.js`: Joi schema validation (TODO)
+- ✅ Phù hợp: Production, team lớn, scale
 
 **Nguồn đề cương**: [TaiLieuHocTheoDeCuongMonHocTruongDaiHoc](https://github.com/lehuy0210/TaiLieuHocTheoDeCuongMonHocTruongDaiHoc)
+
+---
 
 #### 📊 **Top 10 Môn Học Được Áp Dụng Nhiều Nhất**:
 
