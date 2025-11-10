@@ -87,6 +87,46 @@
 //       - 3.1 Layered Architecture: Routes / Middleware / Config
 //       - 3.2 Modularity: Each module has single responsibility
 //
+// 7️⃣ MÔN ĐIỆN TOÁN ĐÁM MÂY (DIEN TOAN DAM MAY.pdf):
+//    📖 CHƯƠNG 2: MICROSERVICES ARCHITECTURE
+//       - 2.1 Service Decomposition: Auth service tách riêng khỏi monolith
+//       - 2.2 Single Responsibility: Mỗi service một chức năng
+//       - 2.3 API Gateway Pattern: Express routes = lightweight gateway
+//       - 2.4 Service Discovery: DNS-based discovery trong Docker network
+//       - Ví dụ: auth-service:3001, image-service:3002 → Docker DNS resolve
+//
+//    📖 CHƯƠNG 4: CLOUD SCALABILITY & LOAD BALANCING
+//       - 4.1 Horizontal Scaling: Stateless design → scale bằng cách chạy nhiều instances
+//       - 4.2 Load Balancer: Nginx/ALB phân phối traffic đến multiple instances
+//       - 4.3 Session Affinity: JWT tokens → không cần sticky sessions
+//       - 4.4 Health Checks: GET /health endpoint cho load balancer
+//       - Ví dụ: 1 instance → 10 instances khi traffic tăng (auto-scaling)
+//
+//    📖 CHƯƠNG 6: CLOUD-NATIVE APPLICATION DESIGN
+//       - 6.1 12-Factor App Methodology:
+//         * Factor 1: Codebase tracked in git
+//         * Factor 3: Config in environment variables (process.env)
+//         * Factor 6: Stateless processes (no server-side sessions)
+//         * Factor 9: Disposability (graceful shutdown với SIGTERM)
+//         * Factor 11: Logs to stdout (logger outputs)
+//       - 6.2 Containerization: Docker-ready application
+//       - 6.3 Cloud Portability: Chạy được trên AWS, Azure, GCP, on-premise
+//       - Ví dụ: Same code → deploy to any cloud platform chỉ cần change env vars
+//
+//    📖 CHƯƠNG 5: CLOUD SECURITY & DDOS PROTECTION
+//       - 5.1 Rate Limiting: Chống DDoS, brute-force attacks
+//       - 5.2 Security Headers: Helmet middleware sets security headers
+//       - 5.3 CORS Policy: Control cross-origin access
+//       - 5.4 WAF Integration: Web Application Firewall (CloudFlare, AWS WAF)
+//       - Ví dụ: Rate limit 100 req/15min → attacker không thể brute-force
+//
+//    📖 CHƯƠNG 7: MONITORING & OBSERVABILITY
+//       - 7.1 Centralized Logging: Logger outputs for aggregation (ELK, CloudWatch)
+//       - 7.2 Metrics Collection: Request count, response time, error rate
+//       - 7.3 Distributed Tracing: Track requests across microservices
+//       - 7.4 Health Endpoints: /health, /metrics cho monitoring systems
+//       - Ví dụ: Prometheus scrapes /metrics → Grafana visualize → alert on anomalies
+//
 // =============================================================================
 
 require('dotenv').config(); // Load .env variables

@@ -35,6 +35,37 @@
 //         + Công cụ: ELK Stack (Elasticsearch, Logstash, Kibana)
 //         + Kafka: Message broker để transport logs
 //
+// 4️⃣ MÔN ĐIỆN TOÁN ĐÁM MÂY (DIEN TOAN DAM MAY.pdf):
+//    📖 CHƯƠNG 7: CLOUD MONITORING & OBSERVABILITY
+//       - 7.1 Centralized Logging: Tất cả instances gửi logs về central location
+//         + AWS CloudWatch Logs: Collect logs from EC2, Lambda, ECS
+//         + Azure Monitor: Log Analytics workspace
+//         + Google Cloud Logging (formerly Stackdriver)
+//       - 7.2 Log Aggregation: Gom logs từ nhiều sources
+//         + Pattern: Each service writes to stdout → Container runtime collects → Aggregator
+//         + ELK Stack (Elasticsearch, Logstash, Kibana)
+//         + Fluentd/Fluent Bit cho lightweight log forwarding
+//       - 7.3 Log Retention & Archiving:
+//         + S3/Blob Storage cho long-term storage
+//         + Lifecycle policies: Hot (7 days) → Warm (30 days) → Cold (1 year) → Archive/Delete
+//       - Ví dụ: 10 instances → all logs → CloudWatch → query toàn bộ logs từ 1 UI
+//
+//    📖 CHƯƠNG 6: CLOUD-NATIVE PATTERNS
+//       - 6.1 Twelve-Factor App - Factor 11: Logs as Event Streams
+//         + Apps không nên manage log files
+//         + Write logs to stdout/stderr → orchestration system handles collection
+//       - 6.2 Container Logging: Docker/Kubernetes collect container logs
+//         + docker logs <container>
+//         + kubectl logs <pod>
+//       - Ví dụ: logger.info() → stdout → Docker captures → Fluentd ships → Elasticsearch stores
+//
+//    📖 CHƯƠNG 2: MICROSERVICES ARCHITECTURE
+//       - 2.5 Distributed Tracing & Correlation IDs
+//         + Mỗi request có unique trace ID
+//         + Trace ID propagates qua tất cả services
+//         + Query logs by trace ID để see full request flow
+//       - Ví dụ: trace_id=abc123 → auth-service → image-service → storage-service logs
+//
 // 🎯 MỤC ĐÍCH FILE NÀY:
 //    - Viết logger đơn giản bằng vanilla JavaScript (KHÔNG dùng Winston library)
 //    - Sinh viên trung bình - khá dễ hiểu cách hoạt động bên trong
