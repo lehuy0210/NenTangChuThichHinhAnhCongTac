@@ -71,6 +71,34 @@
 //    📖 CHƯƠNG 5: FACTORY PATTERN
 //       - 5.1 Middleware Factory: Creating reusable middleware
 //
+// 7️⃣ MÔN ĐIỆN TOÁN ĐÁM MÂY (DIEN TOAN DAM MAY.pdf):
+//    📖 CHƯƠNG 4: HORIZONTAL SCALING & STATELESS DESIGN
+//       - 4.1 Stateless Authentication: JWT không lưu state trong server
+//       - 4.2 Horizontal Scalability: Chạy 10 instances cùng lúc → all verify same JWT
+//       - 4.3 No Session Affinity: Request có thể đến bất kỳ instance nào
+//       - 4.4 Load Balancer Ready: ALB/NLB distribute requests across instances
+//       - Ví dụ: User login ở instance 1 → JWT → request đến instance 5 → vẫn verify OK
+//
+//    📖 CHƯƠNG 5: CLOUD CACHING & DISTRIBUTED DATA
+//       - 5.1 Redis as a Service: ElastiCache (AWS), Azure Cache for Redis
+//       - 5.2 Token Blacklist in Redis: Shared cache across multiple instances
+//       - 5.3 Distributed Cache: All instances check same Redis for blacklisted tokens
+//       - 5.4 TTL for Auto-cleanup: Blacklisted tokens auto-expire
+//       - Ví dụ: Logout ở instance 1 → blacklist in Redis → instance 2,3,4 đều thấy
+//
+//    📖 CHƯƠNG 6: CLOUD-NATIVE SECURITY
+//       - 6.1 Secrets Management: JWT secret từ AWS Secrets Manager, Azure Key Vault
+//       - 6.2 Environment Variables: process.env.JWT_SECRET
+//       - 6.3 Zero Trust Security: Verify every request, trust nothing
+//       - 6.4 Token Rotation: Refresh tokens for long-lived sessions
+//       - Ví dụ: JWT_SECRET stored in AWS Secrets Manager → rotated monthly
+//
+//    📖 CHƯƠNG 7: OBSERVABILITY & MONITORING
+//       - 7.1 Auth Metrics: Login success/failure rate, token validation time
+//       - 7.2 Distributed Tracing: Trace auth flow across services
+//       - 7.3 Audit Logging: Log all auth events for compliance
+//       - Ví dụ: CloudWatch logs auth failures → alert when > 100/min → potential attack
+//
 // =============================================================================
 
 const jwt = require('jsonwebtoken');

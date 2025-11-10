@@ -93,6 +93,34 @@
 //       - 5.1 Singleton Pattern: Single database instance
 //       - 5.2 Factory Pattern: Sequelize creates model instances
 //
+// 7️⃣ MÔN ĐIỆN TOÁN ĐÁM MÂY (DIEN TOAN DAM MAY.pdf):
+//    📖 CHƯƠNG 3: CLOUD DATABASE SERVICES (DBaaS)
+//       - 3.1 Database as a Service: Managed PostgreSQL (AWS RDS, Azure Database, Google Cloud SQL)
+//       - 3.2 Serverless Databases: Auto-scaling, pay-per-use
+//       - 3.3 Multi-AZ Deployment: High availability với replication
+//       - 3.4 Automated Backups: Point-in-time recovery
+//       - Ví dụ: PostgreSQL trên AWS RDS → không cần quản lý infrastructure
+//
+//    📖 CHƯƠNG 4: CLOUD SCALABILITY & ELASTICITY
+//       - 4.1 Vertical Scaling: Tăng RAM/CPU cho DB instance
+//       - 4.2 Horizontal Scaling: Read replicas cho read-heavy workloads
+//       - 4.3 Connection Pooling: Critical cho cloud environments
+//       - 4.4 Auto-scaling: Scale DB based on metrics (CPU, connections)
+//       - Ví dụ: Pool 5-20 connections → cloud instance có RAM giới hạn
+//
+//    📖 CHƯƠNG 6: CLOUD-NATIVE DESIGN PATTERNS
+//       - 6.1 Stateless Services: Database connection không lưu state trong service
+//       - 6.2 Configuration Externalization: DB credentials từ env vars
+//       - 6.3 Health Checks: testConnection() cho load balancer health check
+//       - 6.4 Graceful Shutdown: SIGTERM handler cho container orchestration
+//       - Ví dụ: Kubernetes gửi SIGTERM → service cleanup → container stop
+//
+//    📖 CHƯƠNG 5: CLOUD STORAGE & CACHING
+//       - 5.1 Distributed Caching: Redis trên ElastiCache (AWS) hoặc Azure Cache
+//       - 5.2 In-Memory Data Store: Redis cho session, rate limiting
+//       - 5.3 Cache-Aside Pattern: Check cache → DB → update cache
+//       - Ví dụ: Redis cluster với replication cho high availability
+//
 // =============================================================================
 
 const { Sequelize } = require('sequelize');
